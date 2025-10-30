@@ -1,0 +1,93 @@
+/* Fullscreen welcome with DarkVeil background */
+.welcome {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.welcome .darkveil-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.welcome-content {
+    position: relative;
+    z-index: 2;
+    width: min(720px, 92vw);
+    padding: 24px 20px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: #eaf3ff;
+}
+
+.welcome-content h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.welcome-logo {
+    height: 100px;
+    width: auto;
+    margin: 15px 0 30px;
+    filter: invert(85%) sepia(6%) saturate(720%) hue-rotate(175deg) brightness(110%) contrast(96%)
+            drop-shadow(0 2px 10px rgba(255, 253, 253, 0.45));
+}
+
+.welcome-sub {
+    margin: 0 0 14px;
+    color: #d7e8ff;
+    font-weight: 500;
+}
+
+.welcome-sub.small {
+    font-size: 14px;
+    color: #c8dcff;
+    margin-top: 10px;
+}
+
+.btn {
+    width: 680px;
+    max-width: 92vw;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.05s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+    border: none;
+    background: #3d7cff;
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+}
+.btn-primary:hover { background: #2f67e0; }
+
+.btn-outline {
+    margin-top: 10px;
+    background: transparent;
+    color: #e6f0ff;
+    border: 2px solid rgba(200, 220, 255, 0.5);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.btn-outline:hover { border-color: #ffffff; color: #ffffff; }
+
+.welcome-divider {
+    margin: 14px 0 6px;
+    color: #c8dcff;
+}
+
+
