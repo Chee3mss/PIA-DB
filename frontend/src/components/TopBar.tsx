@@ -1,5 +1,5 @@
 // Topbar.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import logo from '../assets/small-logo.svg'
 import { Search, ShoppingCart, User, Menu, X, MapPin } from 'lucide-react';
 import '../styles/Topbar.css';
@@ -7,6 +7,8 @@ import '../styles/Topbar.css';
 export default function Topbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(3);
+
+  setCartCount(3);
 
   return (
     <>

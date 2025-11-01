@@ -1,4 +1,3 @@
-import React from 'react'
 import DarkVeil from './DarkVeil'
 import logo from '../assets/StageGo-logo.svg'
 import '../styles/LoginPage.css'

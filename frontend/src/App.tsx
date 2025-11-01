@@ -1,5 +1,4 @@
- 
-import DarkVeil from './components/DarkVeil';
+
 import './App.css'
 import Welcome from './components/Welcome';
 
