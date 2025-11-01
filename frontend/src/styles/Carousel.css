@@ -3,6 +3,10 @@
   padding: 0 2rem;
 }
 
+.carousel-section:first-of-type {
+  margin-top: 3rem;
+}
+
 .carousel-title {
   font-size: 1.5rem;
   font-weight: bold;
@@ -88,13 +92,14 @@
 }
 
 .carousel-btn {
-  background: rgb(0, 35, 152);
-  color: white;
+  background: #FFD700;
+  color: #1a1a1a;
   border: none;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   font-size: 1.5rem;
+  font-weight: bold;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -105,7 +110,7 @@
 }
 
 .carousel-btn:hover:not(:disabled) {
-  background: rgba(0, 35, 152, 0.8);
+  background: #FFC700;
 }
 
 .carousel-btn:disabled {

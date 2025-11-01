@@ -1,9 +1,43 @@
 import Carousel from './Carousel'
+import HeroCarousel from './HeroCarousel';
 import Topbar from './TopBar';
 import type { CarouselItem } from './Carousel'
+import type { HeroSlide } from './HeroCarousel'
 import '../styles/Welcome.css'
 
 export default function Welcome() {
+    // Hero carousel slides
+    const heroSlides: HeroSlide[] = [
+        {
+            id: 1,
+            subtitle: "Evento Especial",
+            title: "Festival de Música 2025",
+            description: "Los mejores artistas internacionales se reunirán en un solo lugar. No te pierdas esta experiencia única.",
+            buttonText: "Comprar Boletos"
+        },
+        {
+            id: 2,
+            subtitle: "Gran Promoción",
+            title: "2x1 en Eventos Selectos",
+            description: "Aprovecha nuestra promoción especial y disfruta el doble. Válido hasta fin de mes.",
+            buttonText: "Ver Promociones"
+        },
+        {
+            id: 3,
+            subtitle: "Próximamente",
+            title: "Concierto Sinfónico Premium",
+            description: "Una velada inolvidable con la Orquesta Filarmónica. Reserva tu lugar VIP ahora.",
+            buttonText: "Reservar Ahora"
+        },
+        {
+            id: 4,
+            subtitle: "Exclusivo",
+            title: "Meet & Greet con Artistas",
+            description: "Experiencia VIP: conoce a tus artistas favoritos y obtén acceso exclusivo tras bambalinas.",
+            buttonText: "Más Información"
+        }
+    ];
+
     // Example data for carousels
     const popularItems: CarouselItem[] = [
         { id: 1, title: "Evento Pop 1", description: "Descubre la música pop del momento" },
@@ -44,11 +78,12 @@ export default function Welcome() {
     return (
       <>
         <Topbar/>
+        <HeroCarousel slides={heroSlides} autoPlay={true} autoPlayInterval={5000} />
         <main>
-          <Carousel title="🎵 Populares" items={popularItems} />
-          <Carousel title="🔥 En Tendencia" items={trendingItems} />
-          <Carousel title="📅 Próximamente" items={upcomingItems} />
-          <Carousel title="⭐ Destacados" items={featuredItems} />
+          <Carousel title="Populares" items={popularItems} />
+          <Carousel title="En Tendencia" items={trendingItems} />
+          <Carousel title="Próximamente" items={upcomingItems} />
+          <Carousel title="Destacados" items={featuredItems} />
         </main>
         <footer>
           <p>© 2025 StageGo. All rights reserved.</p>

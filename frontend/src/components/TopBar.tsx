@@ -8,8 +8,6 @@ export default function Topbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(3);
 
-  setCartCount(3);
-
   return (
     <>
       <div className="hero">

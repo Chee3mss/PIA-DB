@@ -4,28 +4,13 @@ import Welcome from './components/Welcome';
 
 function App() {
 
-  const loggedIn = false;
+  const loggedIn = true;
 
   return (
     <>
-      
-      {loggedIn ?
-      (
-        <>
-        <nav>
-        <h1>StageGo</h1>
-      </nav>
-        <main>
-          <h2>Welcome back!</h2>
-        </main>
-        </>
-      )
-      :
-      (
-        <>
-          <Welcome />
-        </>
-      )}
+      <>
+        <Welcome />
+      </>
     </>
   )
 }
