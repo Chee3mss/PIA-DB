@@ -35,6 +35,7 @@
 .carousel-item {
   flex: 0 0 calc(25% - 0.75rem);
   min-width: 200px;
+  cursor: pointer;
 }
 
 .carousel-item-content {

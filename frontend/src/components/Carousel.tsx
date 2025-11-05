@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Carousel.css';
 
 interface CarouselProps {
@@ -14,6 +15,7 @@ export interface CarouselItem {
 }
 
 const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const itemsPerView = 4; // Number of items visible at once
 
@@ -50,7 +52,11 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
             }}
           >
             {items.map((item) => (
-              <div key={item.id} className="carousel-item">
+              <div 
+                key={item.id} 
+                className="carousel-item"
+                onClick={() => navigate(`/event/${item.id}`)}
+              >
                 <div className="carousel-item-content">
                   {item.image ? (
                     <img
