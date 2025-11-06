@@ -1,50 +1,21 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { generateSeatsForVenue, getPriceZonesInfo, getVenueStructure } from '../utils/venueLayouts';
+import type { Seat } from '../utils/venueLayouts';
 import '../styles/SeatMap.css';
-
-interface Seat {
-  id: string;
-  row: string;
-  number: number;
-  status: 'available' | 'occupied' | 'selected';
-  price: number;
-}
 
 interface SeatMapProps {
   functionId: number;
   venue: string;
 }
 
-// Generar asientos para el auditorio
-const generateSeats = (): Seat[] => {
-  const seats: Seat[] = [];
-  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-  const seatsPerRow = 12;
+export default function SeatMap({ venue }: SeatMapProps) {
+  // Generar asientos basados en el venue específico
+  const initialSeats = useMemo(() => generateSeatsForVenue(venue), [venue]);
+  const [seats, setSeats] = useState<Seat[]>(initialSeats);
   
-  rows.forEach((row, rowIndex) => {
-    for (let num = 1; num <= seatsPerRow; num++) {
-      // Simular algunos asientos ocupados aleatoriamente
-      const isOccupied = Math.random() > 0.7;
-      
-      // Precios según la fila
-      let price = 500;
-      if (rowIndex < 3) price = 1200; // Filas A-C (VIP)
-      else if (rowIndex < 6) price = 800; // Filas D-F (Premium)
-      
-      seats.push({
-        id: `${row}${num}`,
-        row,
-        number: num,
-        status: isOccupied ? 'occupied' : 'available',
-        price
-      });
-    }
-  });
-  
-  return seats;
-};
-
-export default function SeatMap({ functionId, venue }: SeatMapProps) {
-  const [seats, setSeats] = useState<Seat[]>(generateSeats());
+  // Obtener información de zonas y estructura del venue
+  const priceZones = useMemo(() => getPriceZonesInfo(venue), [venue]);
+  const venueStructure = useMemo(() => getVenueStructure(venue), [venue]);
   const selectedSeats = seats.filter(s => s.status === 'selected');
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
 
@@ -62,6 +33,7 @@ export default function SeatMap({ functionId, venue }: SeatMapProps) {
     );
   };
 
+  // Agrupar asientos por fila
   const groupedSeats = seats.reduce((acc, seat) => {
     if (!acc[seat.row]) {
       acc[seat.row] = [];
@@ -69,6 +41,11 @@ export default function SeatMap({ functionId, venue }: SeatMapProps) {
     acc[seat.row].push(seat);
     return acc;
   }, {} as Record<string, Seat[]>);
+
+  // Determinar la clase de zona para un asiento
+  const getZoneClass = (seat: Seat) => {
+    return `seat-${seat.status} zone-${seat.zone}`;
+  };
 
   const handleContinue = () => {
     if (selectedSeats.length > 0) {
@@ -86,25 +63,59 @@ export default function SeatMap({ functionId, venue }: SeatMapProps) {
           </div>
 
           <div className="seat-map">
-            {Object.entries(groupedSeats).map(([row, rowSeats]) => (
-              <div key={row} className="seat-row">
-                <div className="row-label">{row}</div>
-                <div className="seats">
-                  {rowSeats.map(seat => (
-                    <button
-                      key={seat.id}
-                      className={`seat seat-${seat.status}`}
-                      onClick={() => handleSeatClick(seat.id)}
-                      disabled={seat.status === 'occupied'}
-                      title={`${seat.id} - $${seat.price}`}
-                    >
-                      {seat.number}
-                    </button>
-                  ))}
+            {venueStructure ? (
+              // Renderizar por zonas estructurales
+              venueStructure.map((zone, zoneIndex) => (
+                <div key={zoneIndex} className={`venue-zone zone-section-${zone.name.includes('VIP') ? 'vip' : zone.name.includes('Premium') ? 'premium' : 'general'}`}>
+                  <div className="zone-header">{zone.name}</div>
+                  {zone.rows.map((row) => {
+                    const rowSeats = groupedSeats[row] || [];
+                    if (rowSeats.length === 0) return null;
+                    
+                    return (
+                      <div key={row} className="seat-row">
+                        <div className="row-label">{row}</div>
+                        <div className="seats">
+                          {rowSeats.map(seat => (
+                            <button
+                              key={seat.id}
+                              className={`seat ${getZoneClass(seat)}`}
+                              onClick={() => handleSeatClick(seat.id)}
+                              disabled={seat.status === 'occupied'}
+                              title={`${seat.id} - $${seat.price}`}
+                            >
+                              {seat.number}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="row-label">{row}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="row-label">{row}</div>
-              </div>
-            ))}
+              ))
+            ) : (
+              // Fallback: renderizado simple
+              Object.entries(groupedSeats).map(([row, rowSeats]) => (
+                <div key={row} className="seat-row">
+                  <div className="row-label">{row}</div>
+                  <div className="seats">
+                    {rowSeats.map(seat => (
+                      <button
+                        key={seat.id}
+                        className={`seat ${getZoneClass(seat)}`}
+                        onClick={() => handleSeatClick(seat.id)}
+                        disabled={seat.status === 'occupied'}
+                        title={`${seat.id} - $${seat.price}`}
+                      >
+                        {seat.number}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="row-label">{row}</div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="seat-legend">
@@ -123,20 +134,14 @@ export default function SeatMap({ functionId, venue }: SeatMapProps) {
           </div>
 
           <div className="price-zones">
-            <h3>Zonas de precios</h3>
+            <h3>Zonas de precios - {venue}</h3>
             <div className="zones">
-              <div className="zone">
-                <span className="zone-color vip"></span>
-                <span>Filas A-C: $1,200</span>
-              </div>
-              <div className="zone">
-                <span className="zone-color premium"></span>
-                <span>Filas D-F: $800</span>
-              </div>
-              <div className="zone">
-                <span className="zone-color general"></span>
-                <span>Filas G-J: $500</span>
-              </div>
+              {priceZones.map((zone) => (
+                <div key={zone.name} className="zone">
+                  <span className={`zone-color ${zone.color}`}></span>
+                  <span>{zone.name}: ${zone.price.toLocaleString()}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

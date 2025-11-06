@@ -35,8 +35,8 @@ const eventsData: Event[] = [
     rating: "Todo Público",
     functions: [
       { id: 1, date: "2025-01-15", time: "19:00", venue: "Auditorio Nacional", availableSeats: 450, totalSeats: 500 },
-      { id: 2, date: "2025-01-16", time: "19:00", venue: "Auditorio Nacional", availableSeats: 320, totalSeats: 500 },
-      { id: 3, date: "2025-01-17", time: "18:00", venue: "Auditorio Nacional", availableSeats: 180, totalSeats: 500 },
+      { id: 2, date: "2025-01-16", time: "19:00", venue: "Arena Monterrey", availableSeats: 720, totalSeats: 800 },
+      { id: 3, date: "2025-01-17", time: "18:00", venue: "Foro Sol", availableSeats: 1200, totalSeats: 1500 },
     ]
   },
   {
@@ -47,8 +47,20 @@ const eventsData: Event[] = [
     duration: "2.5 horas",
     rating: "Todo Público",
     functions: [
-      { id: 4, date: "2025-02-10", time: "20:00", venue: "Teatro de la Ciudad", availableSeats: 280, totalSeats: 350 },
-      { id: 5, date: "2025-02-11", time: "20:00", venue: "Teatro de la Ciudad", availableSeats: 310, totalSeats: 350 },
+      { id: 4, date: "2025-02-10", time: "20:00", venue: "Teatro de la Ciudad", availableSeats: 180, totalSeats: 200 },
+      { id: 5, date: "2025-02-11", time: "20:00", venue: "Teatro Metropolitano", availableSeats: 110, totalSeats: 140 },
+    ]
+  },
+  {
+    id: 3,
+    title: "Stand-Up Comedy Night",
+    description: "Una noche de risas garantizadas con los mejores comediantes del momento.",
+    category: "Comedia",
+    duration: "2 horas",
+    rating: "Mayores 18",
+    functions: [
+      { id: 6, date: "2025-02-20", time: "21:00", venue: "Centro Cultural", availableSeats: 85, totalSeats: 98 },
+      { id: 7, date: "2025-02-21", time: "21:00", venue: "Teatro Metropolitano", availableSeats: 120, totalSeats: 140 },
     ]
   },
 ];

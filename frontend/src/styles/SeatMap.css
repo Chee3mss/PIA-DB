@@ -41,11 +41,50 @@
 
 .seat-map {
   background: #f9f9f9;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1rem;
   overflow-x: auto;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.venue-zone {
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.venue-zone.zone-section-vip {
+  border-color: #FFD700;
+  background: linear-gradient(to bottom, #FFF9E6 0%, white 100%);
+}
+
+.venue-zone.zone-section-premium {
+  border-color: #4FC3F7;
+  background: linear-gradient(to bottom, #E1F5FE 0%, white 100%);
+}
+
+.venue-zone.zone-section-general {
+  border-color: #81C784;
+  background: linear-gradient(to bottom, #E8F5E9 0%, white 100%);
+}
+
+.zone-header {
+  font-weight: bold;
+  font-size: 0.875rem;
+  color: #1a1a1a;
+  padding: 0.5rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .seat-row {
@@ -108,6 +147,22 @@
   color: #1a1a1a;
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+/* Estilos específicos por zona */
+.zone-vip.seat-available {
+  border-color: #FFD700;
+  background: #FFF9E6;
+}
+
+.zone-premium.seat-available {
+  border-color: #4FC3F7;
+  background: #E1F5FE;
+}
+
+.zone-general.seat-available {
+  border-color: #81C784;
+  background: #E8F5E9;
 }
 
 .seat-occupied {
