@@ -6,7 +6,7 @@ import '../styles/Topbar.css';
 
 export default function Topbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(3);
+  const [cartCount] = useState(3); // setCartCount se usará más adelante
 
   return (
     <>
