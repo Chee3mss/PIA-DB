@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1,
+    "subtitle": "Gran Promoción",
+    "title": "2x1 en Eventos Selectos",
+    "description": "Aprovecha nuestra promoción especial y disfruta el doble. Válido hasta fin de mes.",
+    "buttonText": "Ver Promociones",
+    "imageUrl": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200",
+    "active": true
+  },
+  {
+    "id": 2,
+    "subtitle": "Evento Especial",
+    "title": "Festival de Música 2025",
+    "description": "Los mejores artistas internacionales se reunirán en un solo lugar. No te pierdas esta experiencia única.",
+    "buttonText": "Comprar Boletos",
+    "imageUrl": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200",
+    "active": true
+  },
+  {
+    "id": 3,
+    "subtitle": "Próximamente",
+    "title": "Concierto Sinfónico Premium",
+    "description": "Una velada inolvidable con la Orquesta Filarmónica. Reserva tu lugar VIP ahora.",
+    "buttonText": "Reservar Ahora",
+    "imageUrl": "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200",
+    "active": true
+  },
+  {
+    "id": 4,
+    "subtitle": "Exclusivo",
+    "title": "Meet & Greet con Artistas",
+    "description": "Experiencia VIP: conoce a tus artistas favoritos y obtén acceso exclusivo tras bambalinas.",
+    "buttonText": "Más Información",
+    "imageUrl": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200",
+    "active": true
+  }
+]
+

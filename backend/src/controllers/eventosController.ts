@@ -1,144 +1,216 @@
 import { Request, Response } from 'express';
-import { query } from '../config/database';
-import { Evento, Funcion, ApiResponse, TipoBoleto } from '../types';
+import pool from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 // Obtener todos los eventos
-export const getEventos = async (req: Request, res: Response): Promise<void> => {
+export const getEventos = async (_req: Request, res: Response) => {
   try {
-    const eventos = await query<Evento[]>(
-      `SELECT e.*, te.nombre_tipo as tipo_evento_nombre 
-       FROM Evento e 
-       LEFT JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
-       ORDER BY e.fecha_inicio DESC`
+    const [eventos] = await pool.execute<RowDataPacket[]>(
+      `SELECT e.*, te.nombre_tipo as categoria
+       FROM Evento e
+       JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+       ORDER BY e.fecha_inicio ASC`
     );
 
-    const response: ApiResponse<Evento[]> = {
-      success: true,
-      data: eventos,
-      message: `Se encontraron ${eventos.length} eventos`
-    };
+    console.log(`[API] Eventos encontrados: ${eventos.length}`);
+    eventos.forEach((evento: any) => {
+      console.log(`  - ${evento.nombre_evento} (Imagen: ${evento.imagen_url ? 'SI' : 'NO'})`);
+    });
 
-    res.json(response);
+    res.json(eventos);
   } catch (error) {
     console.error('Error al obtener eventos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener eventos'
-    });
+    res.status(500).json({ error: 'Error al obtener eventos' });
   }
 };
 
-// Obtener un evento por ID con sus funciones
-export const getEventoById = async (req: Request, res: Response): Promise<void> => {
+// Obtener evento por ID
+export const getEventoById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Obtener datos del evento
-    const eventos = await query<Evento[]>(
-      `SELECT e.*, te.nombre_tipo as tipo_evento_nombre 
-       FROM Evento e 
-       LEFT JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+    const [eventos] = await pool.execute<RowDataPacket[]>(
+      `SELECT e.*, te.nombre_tipo as categoria, te.descripcion as categoria_desc
+       FROM Evento e
+       JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
        WHERE e.id_evento = ?`,
       [id]
     );
 
     if (eventos.length === 0) {
-      res.status(404).json({
-        success: false,
-        error: 'Evento no encontrado'
-      });
-      return;
+      return res.status(404).json({ error: 'Evento no encontrado' });
     }
 
     // Obtener funciones del evento
-    const funciones = await query<Funcion[]>(
-      `SELECT f.*, a.nombre as auditorio_nombre, s.nombre_sede 
+    const [funciones] = await pool.execute<RowDataPacket[]>(
+      `SELECT f.*, a.nombre as auditorio, s.nombre_sede
        FROM Funciones f
-       LEFT JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
-       LEFT JOIN Sede s ON a.id_sede = s.id_sede
+       JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
+       JOIN Sede s ON a.id_sede = s.id_sede
        WHERE f.id_evento = ?
        ORDER BY f.fecha, f.hora`,
       [id]
     );
 
-    const response: ApiResponse = {
-      success: true,
-      data: {
-        evento: eventos[0],
-        funciones: funciones
-      }
-    };
-
-    res.json(response);
+    res.json({
+      ...eventos[0],
+      funciones
+    });
   } catch (error) {
     console.error('Error al obtener evento:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener evento'
-    });
+    res.status(500).json({ error: 'Error al obtener evento' });
   }
 };
 
-// Obtener boletos disponibles para una función
-export const getBoletosDisponibles = async (req: Request, res: Response): Promise<void> => {
+// Obtener eventos por categoría
+export const getEventosByCategoria = async (req: Request, res: Response) => {
   try {
-    const { idFuncion } = req.params;
+    const { id_tipo } = req.params;
 
-    const boletos = await query(
-      `SELECT b.*, tb.nombre_tipo, tb.precio_base, z.nombre_zona, z.precio_multiplicador,
-              eb.nombre as estado_nombre
-       FROM Boletos b
-       LEFT JOIN Tipo_Boleto tb ON b.id_tipo_boleto = tb.id_tipo_boleto
-       LEFT JOIN Zonas z ON tb.id_zona = z.id_zona
-       LEFT JOIN Estado_Boleto eb ON b.id_estado_boleto = eb.id_estado_boleto
-       WHERE b.id_funcion = ? AND eb.nombre = 'Disponible'
-       ORDER BY z.nombre_zona, b.asiento`,
-      [idFuncion]
+    const [eventos] = await pool.execute<RowDataPacket[]>(
+      `SELECT e.*, te.nombre_tipo as categoria
+       FROM Evento e
+       JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+       WHERE e.id_tipo_evento = ?
+       ORDER BY e.fecha_inicio ASC`,
+      [id_tipo]
     );
 
-    res.json({
-      success: true,
-      data: boletos
-    });
+    res.json(eventos);
   } catch (error) {
-    console.error('Error al obtener boletos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener boletos disponibles'
-    });
+    console.error('Error al obtener eventos por categoría:', error);
+    res.status(500).json({ error: 'Error al obtener eventos' });
   }
 };
 
-// Obtener tipos de boletos para una función
-export const getTiposBoletos = async (req: Request, res: Response): Promise<void> => {
+// Obtener eventos populares (próximos 10 eventos)
+export const getEventosPopulares = async (_req: Request, res: Response) => {
   try {
-    const { idFuncion } = req.params;
-
-    const tipos = await query(
-      `SELECT tb.*, z.nombre_zona, z.descripcion as zona_descripcion,
-              COUNT(b.id_boleto) as disponibles
-       FROM Funciones f
-       JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
-       JOIN Zonas z ON z.id_auditorio = a.id_auditorio
-       JOIN Tipo_Boleto tb ON tb.id_zona = z.id_zona
-       LEFT JOIN Boletos b ON b.id_tipo_boleto = tb.id_tipo_boleto 
-              AND b.id_funcion = f.id_funcion 
-              AND b.id_estado_boleto = (SELECT id_estado_boleto FROM Estado_Boleto WHERE nombre = 'Disponible')
-       WHERE f.id_funcion = ? AND tb.activo = 1
-       GROUP BY tb.id_tipo_boleto, z.nombre_zona`,
-      [idFuncion]
+    const [eventos] = await pool.execute<RowDataPacket[]>(
+      `SELECT e.*, te.nombre_tipo as categoria
+       FROM Evento e
+       JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+       WHERE e.fecha_inicio >= NOW()
+       ORDER BY e.fecha_inicio ASC
+       LIMIT 10`
     );
 
-    res.json({
-      success: true,
-      data: tipos
-    });
+    res.json(eventos);
   } catch (error) {
-    console.error('Error al obtener tipos de boletos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener tipos de boletos'
-    });
+    console.error('Error al obtener eventos populares:', error);
+    res.status(500).json({ error: 'Error al obtener eventos' });
   }
 };
 
+// Buscar eventos
+export const searchEventos = async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query;
+
+    if (!q) {
+      return res.status(400).json({ error: 'Parámetro de búsqueda requerido' });
+    }
+
+    const [eventos] = await pool.execute<RowDataPacket[]>(
+      `SELECT e.*, te.nombre_tipo as categoria
+       FROM Evento e
+       JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+       WHERE e.nombre_evento LIKE ? OR e.descripcion LIKE ?
+       ORDER BY e.fecha_inicio ASC`,
+      [`%${q}%`, `%${q}%`]
+    );
+
+    res.json(eventos);
+  } catch (error) {
+    console.error('Error al buscar eventos:', error);
+    res.status(500).json({ error: 'Error al buscar eventos' });
+  }
+};
+
+// Obtener categorías (tipos de evento)
+export const getCategorias = async (_req: Request, res: Response) => {
+  try {
+    const [categorias] = await pool.execute<RowDataPacket[]>(
+      'SELECT * FROM Tipo_Evento WHERE activo = 1'
+    );
+
+    res.json(categorias);
+  } catch (error) {
+    console.error('Error al obtener categorías:', error);
+    res.status(500).json({ error: 'Error al obtener categorías' });
+  }
+};
+
+// Crear evento - Solo admin
+export const createEvento = async (req: Request, res: Response) => {
+  try {
+    const {
+      nombre_evento,
+      descripcion,
+      imagen_url,
+      clasificacion,
+      fecha_inicio,
+      fecha_fin,
+      id_tipo_evento,
+      id_empleado
+    } = req.body;
+
+    const [result] = await pool.execute(
+      `INSERT INTO Evento 
+       (nombre_evento, descripcion, imagen_url, clasificacion, fecha_inicio, fecha_fin, id_tipo_evento, id_empleado)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre_evento, descripcion, imagen_url, clasificacion, fecha_inicio, fecha_fin, id_tipo_evento, id_empleado]
+    );
+
+    res.status(201).json({
+      message: 'Evento creado exitosamente',
+      id: (result as any).insertId
+    });
+  } catch (error) {
+    console.error('Error al crear evento:', error);
+    res.status(500).json({ error: 'Error al crear evento' });
+  }
+};
+
+// Actualizar evento - Solo admin
+export const updateEvento = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      nombre_evento,
+      descripcion,
+      imagen_url,
+      clasificacion,
+      fecha_inicio,
+      fecha_fin,
+      id_tipo_evento
+    } = req.body;
+
+    await pool.execute(
+      `UPDATE Evento 
+       SET nombre_evento = ?, descripcion = ?, imagen_url = ?, 
+           clasificacion = ?, fecha_inicio = ?, fecha_fin = ?, id_tipo_evento = ?
+       WHERE id_evento = ?`,
+      [nombre_evento, descripcion, imagen_url, clasificacion, fecha_inicio, fecha_fin, id_tipo_evento, id]
+    );
+
+    res.json({ message: 'Evento actualizado exitosamente' });
+  } catch (error) {
+    console.error('Error al actualizar evento:', error);
+    res.status(500).json({ error: 'Error al actualizar evento' });
+  }
+};
+
+// Eliminar evento - Solo admin
+export const deleteEvento = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await pool.execute('DELETE FROM Evento WHERE id_evento = ?', [id]);
+
+    res.json({ message: 'Evento eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar evento:', error);
+    res.status(500).json({ error: 'Error al eliminar evento' });
+  }
+};

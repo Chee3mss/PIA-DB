@@ -8,6 +8,7 @@ export interface HeroSlide {
   subtitle: string;
   description: string;
   image?: string;
+  imageUrl?: string;
   buttonText?: string;
 }
 
@@ -58,10 +59,10 @@ export default function HeroCarousel({
             key={slide.id}
             className={`hero-slide ${index === currentSlide ? 'active' : ''}`}
           >
-            {slide.image ? (
+            {(slide.image || slide.imageUrl) ? (
               <div 
                 className="hero-slide-image"
-                style={{ backgroundImage: `url(${slide.image})` }}
+                style={{ backgroundImage: `url(${slide.image || slide.imageUrl})` }}
               />
             ) : (
               <div 

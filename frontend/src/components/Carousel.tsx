@@ -11,6 +11,7 @@ export interface CarouselItem {
   id: number;
   title: string;
   image?: string;
+  imageUrl?: string;
   description?: string;
 }
 
@@ -58,14 +59,31 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
                 onClick={() => navigate(`/event/${item.id}`)}
               >
                 <div className="carousel-item-content">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="carousel-item-image"
-                    />
+                  {(item.image || item.imageUrl) ? (
+                    <>
+                      <img
+                        src={item.image || item.imageUrl}
+                        alt={item.title}
+                        className="carousel-item-image"
+                        onError={(e) => {
+                          console.error('Error cargando imagen:', item.image || item.imageUrl);
+                          // Si la imagen falla, mostrar placeholder
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            const placeholder = parent.querySelector('.carousel-item-placeholder');
+                            if (placeholder) {
+                              (placeholder as HTMLElement).style.display = 'flex';
+                            }
+                          }
+                        }}
+                      />
+                      <div className="carousel-item-placeholder" style={{ display: 'none' }}>
+                        <span>{item.title.charAt(0)}</span>
+                      </div>
+                    </>
                   ) : (
-                    <div className="carousel-item-placeholder">
+                    <div className="carousel-item-placeholder" style={{ display: 'flex' }}>
                       <span>{item.title.charAt(0)}</span>
                     </div>
                   )}

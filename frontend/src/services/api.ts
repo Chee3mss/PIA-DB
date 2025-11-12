@@ -9,16 +9,28 @@ const api: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   },
 });
 
-// Interceptor de peticiones - Agregar token si existe
+// Interceptor de peticiones - Agregar token si existe y prevenir caché
 api.interceptors.request.use(
   (config: any) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Agregar timestamp para evitar caché
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: new Date().getTime()
+      };
+    }
+    
     return config;
   },
   (error: any) => {
@@ -138,32 +150,183 @@ export interface Municipio {
 }
 
 // ============================================
+// INTERFACES ADICIONALES
+// ============================================
+
+export interface CarouselSlide {
+  id: number;
+  subtitle: string;
+  title: string;
+  description: string;
+  buttonText: string;
+  imageUrl?: string;
+  active: boolean;
+}
+
+export interface Categoria {
+  id_tipo_evento: number;
+  nombre_tipo: string;
+  descripcion: string;
+  activo: number;
+}
+
+// ============================================
+// SERVICIOS DE AUTENTICACIÓN
+// ============================================
+
+export const authService = {
+  // Registrar cliente
+  register: async (datos: ClienteRegistro): Promise<any> => {
+    const response = await api.post('/auth/register', datos);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Login cliente
+  loginCliente: async (credenciales: ClienteLogin): Promise<any> => {
+    const response = await api.post('/auth/login/cliente', credenciales);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Login empleado
+  loginEmpleado: async (credenciales: ClienteLogin): Promise<any> => {
+    const response = await api.post('/auth/login/empleado', credenciales);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Verificar token
+  verifyToken: async (): Promise<any> => {
+    const response = await api.get('/auth/verify');
+    return response.data;
+  },
+
+  // Logout
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  // Obtener usuario actual
+  getCurrentUser: (): any | null => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+
+  // Verificar si está autenticado
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token');
+  },
+};
+
+// ============================================
+// SERVICIOS DE CAROUSEL
+// ============================================
+
+export const carouselService = {
+  // Obtener slides activos
+  getSlides: async (): Promise<CarouselSlide[]> => {
+    const response = await api.get('/carousel');
+    return response.data;
+  },
+
+  // Obtener todos los slides (admin)
+  getAllSlides: async (): Promise<CarouselSlide[]> => {
+    const response = await api.get('/carousel/all');
+    return response.data;
+  },
+
+  // Crear slide (admin)
+  createSlide: async (slide: Partial<CarouselSlide>): Promise<CarouselSlide> => {
+    const response = await api.post('/carousel', slide);
+    return response.data.slide;
+  },
+
+  // Actualizar slide (admin)
+  updateSlide: async (id: number, slide: Partial<CarouselSlide>): Promise<CarouselSlide> => {
+    const response = await api.put(`/carousel/${id}`, slide);
+    return response.data.slide;
+  },
+
+  // Eliminar slide (admin)
+  deleteSlide: async (id: number): Promise<void> => {
+    await api.delete(`/carousel/${id}`);
+  },
+};
+
+// ============================================
 // SERVICIOS DE EVENTOS
 // ============================================
 
 export const eventosService = {
   // Obtener todos los eventos
   getEventos: async (): Promise<Evento[]> => {
-    const response = await api.get<ApiResponse<Evento[]>>('/eventos');
-    return response.data.data || [];
+    const response = await api.get('/eventos');
+    return response.data;
+  },
+
+  // Obtener eventos populares
+  getEventosPopulares: async (): Promise<Evento[]> => {
+    const response = await api.get('/eventos/populares');
+    return response.data;
+  },
+
+  // Buscar eventos
+  searchEventos: async (query: string): Promise<Evento[]> => {
+    const response = await api.get(`/eventos/buscar?q=${query}`);
+    return response.data;
+  },
+
+  // Obtener categorías
+  getCategorias: async (): Promise<Categoria[]> => {
+    const response = await api.get('/eventos/categorias');
+    return response.data;
+  },
+
+  // Obtener eventos por categoría
+  getEventosByCategoria: async (idTipo: number): Promise<Evento[]> => {
+    const response = await api.get(`/eventos/categoria/${idTipo}`);
+    return response.data;
   },
 
   // Obtener un evento específico
-  getEventoById: async (id: number): Promise<EventoDetalle> => {
-    const response = await api.get<ApiResponse<EventoDetalle>>(`/eventos/${id}`);
-    return response.data.data!;
+  getEventoById: async (id: number): Promise<any> => {
+    const response = await api.get(`/eventos/${id}`);
+    return response.data;
   },
 
-  // Obtener tipos de boletos para una función
-  getTiposBoletos: async (idFuncion: number): Promise<TipoBoleto[]> => {
-    const response = await api.get<ApiResponse<TipoBoleto[]>>(`/eventos/${idFuncion}/tipos-boletos`);
-    return response.data.data || [];
+  // Crear evento (admin)
+  createEvento: async (evento: Partial<Evento>): Promise<any> => {
+    const response = await api.post('/eventos', evento);
+    return response.data;
   },
 
-  // Obtener boletos disponibles para una función
-  getBoletosDisponibles: async (idFuncion: number): Promise<any[]> => {
-    const response = await api.get<ApiResponse<any[]>>(`/eventos/${idFuncion}/boletos`);
-    return response.data.data || [];
+  // Actualizar evento (admin)
+  updateEvento: async (id: number, evento: Partial<Evento>): Promise<any> => {
+    const response = await api.put(`/eventos/${id}`, evento);
+    return response.data;
+  },
+
+  // Eliminar evento (admin)
+  deleteEvento: async (id: number): Promise<void> => {
+    await api.delete(`/eventos/${id}`);
   },
 };
 

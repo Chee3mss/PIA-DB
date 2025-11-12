@@ -7,6 +7,8 @@ import { testConnection } from './config/database';
 import eventosRoutes from './routes/eventos';
 import clientesRoutes from './routes/clientes';
 import ubicacionRoutes from './routes/ubicacion';
+import authRoutes from './routes/auth';
+import carouselRoutes from './routes/carousel';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -29,6 +31,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Desactivar caché para todas las respuestas
+app.use((req: Request, res: Response, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Logger de peticiones
 app.use((req: Request, res: Response, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -46,9 +57,11 @@ app.get('/', (req: Request, res: Response) => {
     message: 'API de StageGo funcionando correctamente',
     version: '1.0.0',
     endpoints: {
+      auth: '/api/auth',
       eventos: '/api/eventos',
       clientes: '/api/clientes',
-      ubicacion: '/api/ubicacion'
+      ubicacion: '/api/ubicacion',
+      carousel: '/api/carousel'
     }
   });
 });
@@ -65,9 +78,11 @@ app.get('/health', async (req: Request, res: Response) => {
 });
 
 // Rutas de la API
+app.use('/api/auth', authRoutes);
 app.use('/api/eventos', eventosRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/ubicacion', ubicacionRoutes);
+app.use('/api/carousel', carouselRoutes);
 
 // Ruta 404 - No encontrado
 app.use((req: Request, res: Response) => {
