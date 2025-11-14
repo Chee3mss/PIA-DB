@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import logo from '../assets/StageGo-logo.svg';
 import { authService } from '../services/api';
 import '../styles/AuthPanel.css';
@@ -27,7 +27,6 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
   const [registerData, setRegisterData] = useState({
     nombre_completo: '',
     email: '',
-    telefono: '',
     password: '',
     confirmPassword: ''
   });
@@ -38,12 +37,12 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
     setLoading(true);
 
     try {
-      await authService.login(loginData.email, loginData.password);
+      await authService.loginCliente({ email: loginData.email, password: loginData.password });
       setLoginData({ email: '', password: '' });
       if (onLoginSuccess) onLoginSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      setError(err.response?.data?.error || err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -54,6 +53,11 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
     setError('');
 
     // Validaciones
+    if (!registerData.nombre_completo.trim()) {
+      setError('El nombre completo es requerido');
+      return;
+    }
+
     if (registerData.password !== registerData.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -70,24 +74,22 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
       await authService.register({
         nombre_completo: registerData.nombre_completo,
         email: registerData.email,
-        telefono: registerData.telefono,
         password: registerData.password
       });
       
-      // Limpiar formulario y cambiar a login
+      // Limpiar formulario
       setRegisterData({
         nombre_completo: '',
         email: '',
-        telefono: '',
         password: '',
         confirmPassword: ''
       });
       
-      setIsLogin(true);
-      setError('');
-      alert('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
+      // Cerrar panel ya que el usuario se ha registrado e iniciado sesión automáticamente
+      if (onLoginSuccess) onLoginSuccess();
+      onClose();
     } catch (err: any) {
-      setError(err.message || 'Error al crear la cuenta');
+      setError(err.response?.data?.error || err.message || 'Error al crear la cuenta');
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,6 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
     setRegisterData({
       nombre_completo: '',
       email: '',
-      telefono: '',
       password: '',
       confirmPassword: ''
     });
@@ -191,11 +192,11 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
           ) : (
             <form onSubmit={handleRegisterSubmit} className="auth-form">
               <div className="form-group">
-                <label htmlFor="register-name">Nombre completo</label>
+                <label htmlFor="register-nombre">Nombre completo</label>
                 <div className="input-wrapper">
                   <User className="input-icon" />
                   <input
-                    id="register-name"
+                    id="register-nombre"
                     type="text"
                     placeholder="Nombre completo"
                     value={registerData.nombre_completo}
@@ -216,22 +217,6 @@ export default function AuthPanel({ isOpen, onClose, onLoginSuccess }: AuthPanel
                     value={registerData.email}
                     onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                     required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="register-phone">Teléfono</label>
-                <div className="input-wrapper">
-                  <Mail className="input-icon" />
-                  <input
-                    id="register-phone"
-                    type="tel"
-                    placeholder="Teléfono (10 dígitos)"
-                    value={registerData.telefono}
-                    onChange={(e) => setRegisterData({ ...registerData, telefono: e.target.value })}
-                    required
-                    maxLength={10}
                   />
                 </div>
               </div>

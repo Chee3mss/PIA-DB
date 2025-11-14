@@ -36,6 +36,9 @@
 
   .hero.scrolled .search-bar {
     padding: 0.4rem 0.8rem;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .hero.scrolled .search-input {
@@ -89,6 +92,10 @@
   
   /* Barra de búsqueda */
   .search-bar {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     display: flex;
     align-items: center;
     background: rgba(255, 255, 255, 0.15);

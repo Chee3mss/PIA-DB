@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Topbar from './TopBar';
-import SeatMap from './SeatMap';
 import { eventosService, type EventoDetalle, type Funcion } from '../services/api';
 import '../styles/EventDetail.css';
 
@@ -156,7 +155,10 @@ export default function EventDetail() {
                   <div
                     key={func.id_funcion}
                     className={`function-card ${selectedFunctionId === func.id_funcion ? 'selected' : ''}`}
-                    onClick={() => setSelectedFunctionId(func.id_funcion)}
+                    onClick={() => {
+                      // Navegar a la página de selección de asientos
+                      navigate(`/event/${eventId}/seats/${func.id_funcion}`);
+                    }}
                   >
                     <div className="function-date">
                       {new Date(func.fecha).toLocaleDateString('es-MX', {
@@ -176,6 +178,11 @@ export default function EventDetail() {
                     <div className="function-status">
                       Estado: <span className={`status-badge ${func.estado.toLowerCase()}`}>{func.estado}</span>
                     </div>
+                    <div className="function-action">
+                      <button className="btn-select-function">
+                        Seleccionar asientos →
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -186,16 +193,6 @@ export default function EventDetail() {
             </div>
           )}
         </div>
-
-        {selectedFunction && (
-          <div className="seat-selection-section">
-            <h2>Selecciona tus asientos</h2>
-            <SeatMap 
-              functionId={selectedFunction.id_funcion}
-              venue={selectedFunction.auditorio_nombre || 'Auditorio'}
-            />
-          </div>
-        )}
       </div>
       <footer>
         <p>© 2025 StageGo. All rights reserved.</p>

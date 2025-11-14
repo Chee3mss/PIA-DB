@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../assets/small-logo.svg'
 import { Search, User, Menu, X, MapPin, LogOut, Settings, Package, ChevronDown } from 'lucide-react';
 import { authService, eventosService, ubicacionService, type Evento, type Estado } from '../services/api';
+import AuthModal from './AuthModal';
 import '../styles/TopBar.css';
 
 export default function Topbar() {
@@ -17,6 +18,7 @@ export default function Topbar() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [selectedLocation, setSelectedLocation] = useState('Cargando...');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   
   // Refs para cerrar dropdowns al hacer click fuera
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -100,7 +102,12 @@ export default function Topbar() {
 
   const handleLogin = () => {
     setIsUserDropdownOpen(false);
-    navigate('/login');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: any) => {
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
   };
 
   const handleEventClick = (eventId: number) => {
@@ -111,6 +118,34 @@ export default function Topbar() {
 
   const goToHome = () => {
     navigate('/');
+  };
+
+  const handleProfileClick = () => {
+    setIsUserDropdownOpen(false);
+    // Si es empleado, ir al panel de admin, si no, al perfil
+    if (currentUser?.tipo === 'empleado') {
+      navigate('/admin');
+    } else {
+      navigate('/perfil');
+    }
+  };
+
+  const handleOrdersClick = () => {
+    setIsUserDropdownOpen(false);
+    if (currentUser?.tipo === 'empleado') {
+      navigate('/admin');
+    } else {
+      navigate('/perfil');
+    }
+  };
+
+  const handleSettingsClick = () => {
+    setIsUserDropdownOpen(false);
+    if (currentUser?.tipo === 'empleado') {
+      navigate('/admin');
+    } else {
+      navigate('/perfil');
+    }
   };
 
   return (
@@ -227,15 +262,15 @@ export default function Topbar() {
                     </div>
                     
                     <div className="dropdown-menu">
-                      <button className="menu-item">
+                      <button className="menu-item" onClick={handleProfileClick}>
                         <User className="icon" />
                         <span>Mi Perfil</span>
                       </button>
-                      <button className="menu-item">
+                      <button className="menu-item" onClick={handleOrdersClick}>
                         <Package className="icon" />
                         <span>Mis Pedidos</span>
                       </button>
-                      <button className="menu-item">
+                      <button className="menu-item" onClick={handleSettingsClick}>
                         <Settings className="icon" />
                         <span>Configuración</span>
                       </button>
@@ -328,6 +363,13 @@ export default function Topbar() {
           )}
         </div>
       </div>
+
+      {/* Modal de Autenticación */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </>
   );
 }

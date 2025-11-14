@@ -177,8 +177,28 @@ export interface Categoria {
 
 export const authService = {
   // Registrar cliente
-  register: async (datos: ClienteRegistro): Promise<any> => {
+  register: async (datos: { nombre_completo: string; email: string; password: string }): Promise<any> => {
     const response = await api.post('/auth/register', datos);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Registrar empleado/admin
+  registerEmpleado: async (datos: { nombre_completo: string; email: string; password: string }): Promise<any> => {
+    const response = await api.post('/auth/register/empleado', datos);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Login unificado (detecta automáticamente si es cliente o empleado)
+  login: async (credenciales: ClienteLogin): Promise<any> => {
+    const response = await api.post('/auth/login', credenciales);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -380,6 +400,12 @@ export const clientesService = {
     return response.data.data || [];
   },
 
+  // Obtener todos los clientes (admin)
+  getAllClientes: async (): Promise<any[]> => {
+    const response = await api.get<ApiResponse<any[]>>('/clientes');
+    return response.data.data || [];
+  },
+
   // Obtener usuario actual del localStorage
   getCurrentUser: (): LoginResponse | null => {
     const userStr = localStorage.getItem('user');
@@ -396,6 +422,54 @@ export const clientesService = {
   // Verificar si el usuario está autenticado
   isAuthenticated: (): boolean => {
     return !!localStorage.getItem('token');
+  },
+};
+
+// ============================================
+// SERVICIOS DE VENTAS
+// ============================================
+
+export const ventasService = {
+  // Obtener todas las ventas (admin)
+  getAllVentas: async (): Promise<any[]> => {
+    const response = await api.get<ApiResponse<any[]>>('/ventas');
+    return response.data.data || [];
+  },
+
+  // Obtener detalles de una venta
+  getVentaById: async (id: number): Promise<any> => {
+    const response = await api.get<ApiResponse<any>>(`/ventas/${id}`);
+    return response.data.data;
+  },
+
+  // Obtener estadísticas de ventas
+  getVentasStats: async (): Promise<any> => {
+    const response = await api.get<ApiResponse<any>>('/ventas/stats');
+    return response.data.data;
+  },
+};
+
+// ============================================
+// SERVICIOS DE BOLETOS
+// ============================================
+
+export const boletosService = {
+  // Obtener todos los boletos (admin)
+  getAllBoletos: async (): Promise<any[]> => {
+    const response = await api.get<ApiResponse<any[]>>('/boletos');
+    return response.data.data || [];
+  },
+
+  // Obtener boletos por evento
+  getBoletosByEvento: async (id: number): Promise<any[]> => {
+    const response = await api.get<ApiResponse<any[]>>(`/boletos/evento/${id}`);
+    return response.data.data || [];
+  },
+
+  // Obtener estadísticas de boletos
+  getBoletosStats: async (): Promise<any> => {
+    const response = await api.get<ApiResponse<any>>('/boletos/stats');
+    return response.data.data;
   },
 };
 
@@ -465,6 +539,203 @@ export const apiUtils = {
     } catch {
       return false;
     }
+  },
+};
+
+// ============================================
+// SERVICIOS DE ADMINISTRADOR
+// ============================================
+
+export const adminService = {
+  // Estadísticas generales
+  getEstadisticasGenerales: async (): Promise<any> => {
+    const response = await api.get('/admin/estadisticas');
+    return response.data.data;
+  },
+
+  // Estadísticas por evento
+  getEstadisticasEvento: async (id: number): Promise<any> => {
+    const response = await api.get(`/admin/estadisticas/evento/${id}`);
+    return response.data.data;
+  },
+
+  // Eventos
+  getAllEventos: async (): Promise<any[]> => {
+    const response = await api.get('/eventos');
+    return response.data;
+  },
+
+  crearEvento: async (evento: any): Promise<any> => {
+    const response = await api.post('/eventos', evento);
+    return response.data;
+  },
+
+  actualizarEvento: async (id: number, evento: any): Promise<any> => {
+    const response = await api.put(`/eventos/${id}`, evento);
+    return response.data;
+  },
+
+  eliminarEvento: async (id: number): Promise<any> => {
+    const response = await api.delete(`/eventos/${id}`);
+    return response.data;
+  },
+
+  // Ventas
+  getAllVentas: async (): Promise<any[]> => {
+    const response = await api.get('/ventas');
+    return response.data;
+  },
+
+  getVentaDetalle: async (id: number): Promise<any> => {
+    const response = await api.get(`/ventas/${id}`);
+    return response.data;
+  },
+
+  // Clientes
+  getAllClientes: async (): Promise<any[]> => {
+    const response = await api.get('/clientes');
+    return response.data;
+  },
+
+  // Catálogos
+  getTiposEvento: async (): Promise<any[]> => {
+    const response = await api.get('/admin/tipos-evento');
+    return response.data.data;
+  },
+};
+
+// ============================================
+// AUDITORIOS
+// ============================================
+
+export interface Auditorio {
+  id_auditorio: number;
+  nombre: string;
+  capacidad: number;
+  id_sede: number;
+  seatsio_event_key: string | null;
+  seatsio_public_key: string | null;
+  activo: number;
+  nombre_sede?: string;
+  ciudad?: string;
+}
+
+export interface Sede {
+  id_sede: number;
+  nombre_sede: string;
+  direccion: string;
+  ciudad: string;
+  telefono: string;
+  capacidad_total: number;
+  activo: number;
+}
+
+export interface SeatsioConfig {
+  seatsio_event_key: string;
+  seatsio_public_key: string | null;
+  auditorio: {
+    id: number;
+    nombre: string;
+    sede: string;
+  };
+  funcion: {
+    id: number;
+    fecha: string;
+    hora: string;
+  };
+}
+
+export const auditoriosService = {
+  // Obtener todos los auditorios
+  getAllAuditorios: async (): Promise<Auditorio[]> => {
+    const response = await api.get('/auditorios');
+    return response.data;
+  },
+
+  // Obtener auditorio por ID
+  getAuditorioById: async (id: number): Promise<Auditorio> => {
+    const response = await api.get(`/auditorios/${id}`);
+    return response.data;
+  },
+
+  // Obtener configuración de Seats.io para una función
+  getSeatsioConfigByFuncion: async (idFuncion: number): Promise<SeatsioConfig> => {
+    const response = await api.get(`/auditorios/seatsio/funcion/${idFuncion}`);
+    return response.data;
+  },
+
+  // Crear auditorio (admin)
+  createAuditorio: async (auditorio: Partial<Auditorio>): Promise<any> => {
+    const response = await api.post('/auditorios', auditorio);
+    return response.data;
+  },
+
+  // Actualizar auditorio (admin)
+  updateAuditorio: async (id: number, auditorio: Partial<Auditorio>): Promise<any> => {
+    const response = await api.put(`/auditorios/${id}`, auditorio);
+    return response.data;
+  },
+
+  // Actualizar configuración de Seats.io (admin)
+  updateSeatsioConfig: async (
+    id: number, 
+    config: { seatsio_event_key?: string; seatsio_public_key?: string }
+  ): Promise<any> => {
+    const response = await api.put(`/auditorios/${id}/seatsio`, config);
+    return response.data;
+  },
+
+  // Eliminar auditorio (soft delete) (admin)
+  deleteAuditorio: async (id: number): Promise<any> => {
+    const response = await api.delete(`/auditorios/${id}`);
+    return response.data;
+  },
+
+  // Obtener sedes
+  getSedes: async (): Promise<Sede[]> => {
+    const response = await api.get('/auditorios/sedes');
+    return response.data;
+  },
+};
+
+// ============================================
+// FUNCIONES SERVICE
+// ============================================
+
+export interface FuncionDetalle {
+  id_funcion: number;
+  fecha_hora: string;
+  seatsio_event_key: string | null;
+  id_auditorio: number;
+  nombre_auditorio: string;
+  capacidad_total: number;
+  nombre_sede: string;
+  direccion_sede: string;
+}
+
+export interface CrearFuncionData {
+  id_evento: number;
+  id_auditorio: number;
+  fecha_hora: string;
+}
+
+export const funcionesService = {
+  // Crear función
+  crearFuncion: async (data: CrearFuncionData): Promise<ApiResponse> => {
+    const response = await api.post('/funciones', data);
+    return response.data;
+  },
+
+  // Eliminar función
+  eliminarFuncion: async (id: number): Promise<ApiResponse> => {
+    const response = await api.delete(`/funciones/${id}`);
+    return response.data;
+  },
+
+  // Obtener funciones por evento
+  obtenerFuncionesPorEvento: async (idEvento: number): Promise<FuncionDetalle[]> => {
+    const response = await api.get(`/funciones/evento/${idEvento}`);
+    return response.data.data;
   },
 };
 

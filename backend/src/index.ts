@@ -9,6 +9,11 @@ import clientesRoutes from './routes/clientes';
 import ubicacionRoutes from './routes/ubicacion';
 import authRoutes from './routes/auth';
 import carouselRoutes from './routes/carousel';
+import ventasRoutes from './routes/ventas';
+import boletosRoutes from './routes/boletos';
+import auditoriosRoutes from './routes/auditorios';
+import seatsioRoutes from './routes/seatsio';
+import funcionesRoutes from './routes/funciones';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -61,7 +66,12 @@ app.get('/', (req: Request, res: Response) => {
       eventos: '/api/eventos',
       clientes: '/api/clientes',
       ubicacion: '/api/ubicacion',
-      carousel: '/api/carousel'
+      carousel: '/api/carousel',
+      ventas: '/api/ventas',
+      boletos: '/api/boletos',
+      auditorios: '/api/auditorios',
+      seatsio: '/api/seatsio',
+      funciones: '/api/funciones'
     }
   });
 });
@@ -83,6 +93,11 @@ app.use('/api/eventos', eventosRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/ubicacion', ubicacionRoutes);
 app.use('/api/carousel', carouselRoutes);
+app.use('/api/ventas', ventasRoutes);
+app.use('/api/boletos', boletosRoutes);
+app.use('/api/auditorios', auditoriosRoutes);
+app.use('/api/seatsio', seatsioRoutes);
+app.use('/api/funciones', funcionesRoutes);
 
 // Ruta 404 - No encontrado
 app.use((req: Request, res: Response) => {

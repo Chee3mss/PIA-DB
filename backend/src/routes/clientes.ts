@@ -3,7 +3,8 @@ import {
   registrarCliente,
   loginCliente,
   getPerfilCliente,
-  getComprasCliente
+  getComprasCliente,
+  getAllClientes
 } from '../controllers/clientesController';
 
 const router = Router();
@@ -11,6 +12,9 @@ const router = Router();
 // Rutas de autenticación
 router.post('/registro', registrarCliente);
 router.post('/login', loginCliente);
+
+// Rutas admin
+router.get('/', getAllClientes);
 
 // Rutas de perfil y compras
 router.get('/:id/perfil', getPerfilCliente);

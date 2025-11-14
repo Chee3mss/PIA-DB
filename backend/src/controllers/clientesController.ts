@@ -212,3 +212,32 @@ export const getComprasCliente = async (req: Request, res: Response): Promise<vo
   }
 };
 
+// Obtener todos los clientes (solo para administradores)
+export const getAllClientes = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const clientes = await query<RowDataPacket[]>(
+      `SELECT c.id_cliente, c.nombre_completo, c.email, c.telefono, c.numero_registro, 
+              c.fecha_registro, m.nombre as municipio, e.nombre as estado,
+              COUNT(DISTINCT v.id_venta) as total_compras,
+              SUM(v.total) as monto_total_compras
+       FROM Clientes c
+       LEFT JOIN Municipio m ON c.id_municipio = m.id_municipio
+       LEFT JOIN Estado e ON m.id_estado = e.id_estado
+       LEFT JOIN Ventas v ON c.id_cliente = v.id_cliente
+       GROUP BY c.id_cliente
+       ORDER BY c.fecha_registro DESC`
+    );
+
+    res.json({
+      success: true,
+      data: clientes
+    });
+  } catch (error) {
+    console.error('Error al obtener clientes:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener clientes'
+    });
+  }
+};
+
