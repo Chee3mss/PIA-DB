@@ -33,6 +33,15 @@
   align-items: flex-start;
 }
 
+.event-image {
+  width: 250px;
+  height: 350px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 .event-image-placeholder {
   width: 250px;
   height: 350px;
@@ -154,17 +163,65 @@
 .function-venue {
   font-size: 0.875rem;
   color: #777;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.venue-location {
+  display: block;
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.25rem;
 }
 
 .function-availability {
   font-size: 0.875rem;
   color: #2e7d32;
   font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
 .function-availability.low {
   color: #d32f2f;
+}
+
+.function-status {
+  font-size: 0.875rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.activo {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.cancelado {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.pospuesto {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.no-functions {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+  font-size: 1.125rem;
 }
 
 .seat-selection-section {

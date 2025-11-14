@@ -89,9 +89,10 @@ export interface Funcion {
   nombre_sede?: string;
 }
 
-export interface EventoDetalle {
-  evento: Evento;
+export interface EventoDetalle extends Evento {
   funciones: Funcion[];
+  categoria?: string;
+  categoria_desc?: string;
 }
 
 export interface TipoBoleto {
@@ -306,8 +307,8 @@ export const eventosService = {
     return response.data;
   },
 
-  // Obtener un evento específico
-  getEventoById: async (id: number): Promise<any> => {
+  // Obtener un evento específico con sus funciones
+  getEventoById: async (id: number): Promise<EventoDetalle> => {
     const response = await api.get(`/eventos/${id}`);
     return response.data;
   },
