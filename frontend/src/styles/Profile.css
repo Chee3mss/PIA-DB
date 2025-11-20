@@ -225,9 +225,37 @@
 
 .compra-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 215, 0, 0.2);
+  gap: 1rem;
+}
+
+.ver-detalles-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  color: #FFD700;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ver-detalles-btn:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.ver-detalles-btn .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .compra-total {
@@ -245,6 +273,163 @@
   color: #FFD700;
   font-size: 1.25rem;
   font-weight: 700;
+}
+
+/* Boletos Summary (Compact) */
+.boletos-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.evento-info-compact h4 {
+  color: #FFD700;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.evento-meta-compact {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.meta-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.icon-small {
+  width: 14px;
+  height: 14px;
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+.asientos-summary {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.asientos-summary strong {
+  color: #FFD700;
+  margin-right: 0.5rem;
+}
+
+/* Boletos Details (Expandible) */
+.boletos-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.boleto-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.evento-info {
+  background: rgba(255, 215, 0, 0.08);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.evento-info h3 {
+  color: #FFD700;
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.evento-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.meta-item .icon {
+  width: 16px;
+  height: 16px;
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+.boleto-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(255, 215, 0, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.boleto-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.boleto-info .icon {
+  width: 20px;
+  height: 20px;
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+.boleto-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.boleto-info strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.boleto-tipo {
+  color: rgba(255, 215, 0, 0.7);
+  font-size: 0.85rem;
+}
+
+.boleto-precio {
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
 /* Empty State */

@@ -16,7 +16,6 @@ import {
   Settings
 } from 'lucide-react';
 import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData } from '../services/api';
-import Topbar from './TopBar';
 import '../styles/AdminPanel.css';
 
 type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio';
@@ -30,6 +29,7 @@ interface Evento {
   fecha_inicio: string;
   fecha_fin: string;
   tipo_evento_nombre?: string;
+  id_tipo_evento?: number;
 }
 
 interface Compra {
@@ -78,6 +78,9 @@ export default function AdminPanel() {
   const [isEventoModalOpen, setIsEventoModalOpen] = useState(false);
   const [eventFunctions, setEventFunctions] = useState<FuncionDetalle[]>([]);
   const [tiposEvento, setTiposEvento] = useState<any[]>([]);
+  
+  // Estado para modo de entrada de Seats.io en modal de auditorio
+  const [seatsioInputMode, setSeatsioInputMode] = useState<'select' | 'manual'>('select');
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -90,7 +93,32 @@ export default function AdminPanel() {
 
     setCurrentUser(user);
     loadInitialData();
+
+    // Manejar hash de URL
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['dashboard', 'eventos', 'compras', 'boletos', 'clientes', 'auditorios', 'seatsio'].includes(hash)) {
+      setCurrentSection(hash as Section);
+    }
   }, [navigate]);
+
+  // Efecto para cargar datos según la sección
+  useEffect(() => {
+    switch (currentSection) {
+      case 'compras':
+        if (compras.length === 0) loadCompras();
+        break;
+      case 'clientes':
+        if (clientes.length === 0) loadClientes();
+        break;
+      case 'auditorios':
+        if (auditorios.length === 0) loadAuditorios();
+        if (seatsioCharts.length === 0) loadSeatsioData();
+        break;
+      case 'seatsio':
+        loadSeatsioData();
+        break;
+    }
+  }, [currentSection]);
 
   const loadInitialData = async () => {
     try {
@@ -343,16 +371,7 @@ export default function AdminPanel() {
   const handleSectionChange = (section: Section) => {
     setCurrentSection(section);
     setSearchTerm('');
-    
-    if (section === 'compras' && compras.length === 0) {
-      loadCompras();
-    } else if (section === 'clientes' && clientes.length === 0) {
-      loadClientes();
-    } else if (section === 'auditorios' && auditorios.length === 0) {
-      loadAuditorios();
-    } else if (section === 'seatsio') {
-      loadSeatsioData();
-    }
+    window.location.hash = section;
   };
 
   const formatDate = (dateString: string) => {
@@ -376,7 +395,6 @@ export default function AdminPanel() {
   if (loading) {
     return (
       <>
-        <Topbar />
         <div className="admin-panel">
           <div className="loading-container">
             <div className="spinner"></div>
@@ -389,7 +407,6 @@ export default function AdminPanel() {
 
   return (
     <>
-      <Topbar />
       <div className="admin-panel">
         {/* Sidebar */}
         <aside className="admin-sidebar">
@@ -541,7 +558,7 @@ export default function AdminPanel() {
                 </button>
               </div>
 
-              <div className="search-bar">
+              <div className="admin-search-bar">
                 <Search className="icon" />
                 <input
                   type="text"
@@ -602,7 +619,7 @@ export default function AdminPanel() {
             <div className="compras-section">
               <h1 className="section-title">Compras de Clientes</h1>
               
-              <div className="search-bar">
+              <div className="admin-search-bar">
                 <Search className="icon" />
                 <input
                   type="text"
@@ -660,7 +677,7 @@ export default function AdminPanel() {
             <div className="boletos-section">
               <h1 className="section-title">Boletos</h1>
               
-              <div className="search-bar">
+              <div className="admin-search-bar">
                 <Search className="icon" />
                 <input
                   type="text"
@@ -683,7 +700,7 @@ export default function AdminPanel() {
             <div className="clientes-section">
               <h1 className="section-title">Clientes Registrados</h1>
               
-              <div className="search-bar">
+              <div className="admin-search-bar">
                 <Search className="icon" />
                 <input
                   type="text"
@@ -744,7 +761,7 @@ export default function AdminPanel() {
                 <p className="section-subtitle">Configura los auditorios y vincula con Seats.io</p>
               </div>
               
-              <div className="search-bar">
+              <div className="admin-search-bar">
                 <Search className="icon" />
                 <input
                   type="text"
@@ -810,6 +827,10 @@ export default function AdminPanel() {
                               className="btn-action edit"
                               onClick={() => {
                                 setEditingAuditorio(auditorio);
+                                // Determinar modo inicial: si tiene key y no está en charts, es manual (probablemente event key legacy)
+                                // Si no tiene key o está en charts, sugerir select
+                                const isChart = !auditorio.seatsio_event_key || seatsioCharts.some(c => c.key === auditorio.seatsio_event_key);
+                                setSeatsioInputMode(isChart ? 'select' : 'manual');
                                 setIsEditModalOpen(true);
                               }}
                               title="Editar configuración de Seats.io"
@@ -1194,19 +1215,81 @@ export default function AdminPanel() {
                     }
                   }}>
                     <div className="form-group">
-                      <label htmlFor="seatsio_event_key">
-                        Event Key de Seats.io *
-                        <span className="field-hint">Ejemplo: 9c160410-3b99-4758-85d1-e2d1321f9973</span>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+                        Método de Configuración
                       </label>
-                      <input
-                        type="text"
-                        id="seatsio_event_key"
-                        name="seatsio_event_key"
-                        defaultValue={editingAuditorio.seatsio_event_key || ''}
-                        placeholder="Pega aquí el Event Key de Seats.io"
-                        required
-                      />
+                      <div style={{ display: 'flex', gap: '1.5rem', padding: '0.5rem 0' }}>
+                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'white' }}>
+                            <input 
+                                type="radio" 
+                                name="config_mode"
+                                checked={seatsioInputMode === 'select'} 
+                                onChange={() => setSeatsioInputMode('select')} 
+                            /> 
+                            Seleccionar Chart (API)
+                         </label>
+                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'white' }}>
+                            <input 
+                                type="radio" 
+                                name="config_mode"
+                                checked={seatsioInputMode === 'manual'} 
+                                onChange={() => setSeatsioInputMode('manual')} 
+                            /> 
+                            Manual (Key)
+                         </label>
+                      </div>
                     </div>
+
+                    {seatsioInputMode === 'select' ? (
+                      <div className="form-group">
+                        <label htmlFor="seatsio_event_key_select">
+                          Seleccionar Chart de Seats.io *
+                          <span className="field-hint">Se vinculará este auditorio con el Chart seleccionado</span>
+                        </label>
+                        <select
+                          id="seatsio_event_key_select"
+                          name="seatsio_event_key"
+                          defaultValue={editingAuditorio.seatsio_event_key || ''}
+                          required={seatsioInputMode === 'select'}
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.875rem 1rem', 
+                            background: 'rgba(255, 255, 255, 0.05)', 
+                            border: '1px solid rgba(255, 255, 255, 0.2)', 
+                            borderRadius: '8px', 
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="">-- Seleccionar Chart --</option>
+                          {seatsioCharts.map((chart: any) => (
+                            <option key={chart.key} value={chart.key}>
+                              {chart.name}
+                            </option>
+                          ))}
+                        </select>
+                        {seatsioCharts.length === 0 && (
+                          <p className="field-hint" style={{ color: '#ff9800' }}>
+                            ⚠️ No se encontraron charts. Verifica la configuración de API Keys en la sección Seats.io Config.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="form-group">
+                        <label htmlFor="seatsio_event_key">
+                          Key de Seats.io *
+                          <span className="field-hint">Event Key o Chart Key</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="seatsio_event_key"
+                          name="seatsio_event_key"
+                          defaultValue={editingAuditorio.seatsio_event_key || ''}
+                          placeholder="Pegar Key aquí"
+                          required={seatsioInputMode === 'manual'}
+                        />
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label htmlFor="seatsio_public_key">

@@ -46,7 +46,7 @@ const MOCK_EVENT = {
 };
 
 interface SeatsioConfig {
-  publicKey: string;
+  workspaceKey: string;
   event: string;
   region: string;
 }
@@ -62,7 +62,7 @@ export default function EventTest() {
     // Configuración de Seats.io
     // IMPORTANTE: Necesitas reemplazar estos valores con tus propias credenciales
     setSeatsioConfig({
-      publicKey: 'f746befc-30bd-4c29-aa82-e6a52e274ba4', // Reemplazar con tu public key de Seats.io
+      workspaceKey: 'f746befc-30bd-4c29-aa82-e6a52e274ba4', // Reemplazar con tu workspace key de Seats.io
       event: '9c160410-3b99-4758-85d1-e2d1321f9973', // Reemplazar con tu event key
       region: 'na' // 'na' para North America, 'eu' para Europe
     });
@@ -198,7 +198,7 @@ export default function EventTest() {
                 <div className="seatsio-chart-container">
                   <SeatsioSeatingChart
                     ref={chartRef}
-                    publicKey={seatsioConfig.publicKey}
+                    workspaceKey={seatsioConfig.workspaceKey}
                     event={seatsioConfig.event}
                     region={seatsioConfig.region}
                     onObjectSelected={handleSeatSelected}

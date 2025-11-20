@@ -14,6 +14,7 @@ import boletosRoutes from './routes/boletos';
 import auditoriosRoutes from './routes/auditorios';
 import seatsioRoutes from './routes/seatsio';
 import funcionesRoutes from './routes/funciones';
+import paymentsRoutes from './routes/payments';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -98,6 +99,7 @@ app.use('/api/boletos', boletosRoutes);
 app.use('/api/auditorios', auditoriosRoutes);
 app.use('/api/seatsio', seatsioRoutes);
 app.use('/api/funciones', funcionesRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Ruta 404 - No encontrado
 app.use((req: Request, res: Response) => {

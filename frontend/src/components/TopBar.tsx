@@ -1,14 +1,15 @@
 // Topbar.tsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/small-logo.svg'
 import { Search, User, Menu, X, MapPin, LogOut, Settings, Package, ChevronDown } from 'lucide-react';
 import { authService, eventosService, ubicacionService, type Evento, type Estado } from '../services/api';
 import AuthModal from './AuthModal';
 import '../styles/TopBar.css';
 
-export default function Topbar() {
+export default function Topbar({ selectedLocation: propSelectedLocation, onLocationChange }: { selectedLocation?: string, onLocationChange?: (location: string) => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
@@ -17,13 +18,30 @@ export default function Topbar() {
   const [isSearching, setIsSearching] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [estados, setEstados] = useState<Estado[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState('Cargando...');
+  const [internalSelectedLocation, setInternalSelectedLocation] = useState('México');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   
+  const selectedLocation = propSelectedLocation || internalSelectedLocation;
+
   // Refs para cerrar dropdowns al hacer click fuera
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Manejar scroll para cambiar estilo del header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Cargar usuario actual y estados
   useEffect(() => {
@@ -34,22 +52,32 @@ export default function Topbar() {
     const loadEstados = async () => {
       try {
         const estadosData = await ubicacionService.getEstados();
-        setEstados(estadosData);
+        // Añadir opción "México" al principio
+        const allEstados = [{ id_estado: 0, nombre: 'México' }, ...estadosData];
+        setEstados(allEstados);
         
-        // Seleccionar el primer estado por defecto (o Nuevo León si existe)
-        if (estadosData.length > 0) {
-          const nuevoLeon = estadosData.find(e => e.nombre.toLowerCase().includes('nuevo león'));
-          setSelectedLocation(nuevoLeon ? nuevoLeon.nombre : estadosData[0].nombre);
+        // Si no hay prop, intentar seleccionar Nuevo León por defecto, si no México
+        if (!propSelectedLocation) {
+             const nuevoLeon = estadosData.find(e => e.nombre.toLowerCase().includes('nuevo león'));
+             setInternalSelectedLocation(nuevoLeon ? nuevoLeon.nombre : 'México');
         }
       } catch (error) {
         console.error('Error al cargar estados:', error);
-        // En caso de error, usar un valor por defecto
-        setSelectedLocation('México');
+        setInternalSelectedLocation('México');
       }
     };
     
     loadEstados();
   }, []);
+
+  const handleLocationSelect = (location: string) => {
+      if (onLocationChange) {
+          onLocationChange(location);
+      } else {
+          setInternalSelectedLocation(location);
+      }
+      setIsLocationDropdownOpen(false);
+  };
 
   // Cerrar dropdowns al hacer click fuera
   useEffect(() => {
@@ -150,7 +178,7 @@ export default function Topbar() {
 
   return (
     <>
-      <div className="hero">
+      <div className={`hero ${isScrolled ? 'scrolled' : ''} ${location.pathname !== '/' ? 'solid-bg' : ''}`}>
         <div className="logo" onClick={goToHome}>
           <img src={logo} alt="logo" className="small-logo" />
           <span className="logo-text">StageGo</span>
@@ -215,10 +243,7 @@ export default function Topbar() {
                       <button
                         key={estado.id_estado}
                         className={`location-item ${selectedLocation === estado.nombre ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedLocation(estado.nombre);
-                          setIsLocationDropdownOpen(false);
-                        }}
+                        onClick={() => handleLocationSelect(estado.nombre)}
                       >
                         <MapPin className="icon" />
                         <span>{estado.nombre}</span>

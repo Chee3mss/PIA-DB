@@ -4,7 +4,7 @@
   min-height: 100vh;
   background: #0a0a0a;
   display: flex;
-  padding-top: 100px;
+  padding-top: 0; /* Eliminado padding-top ya que quitamos el header */
 }
 
 /* ============================================
@@ -15,10 +15,10 @@
   width: 280px;
   background: #1a1a1a;
   border-right: 1px solid rgba(255, 215, 0, 0.2);
-  height: calc(100vh - 100px);
+  height: 100vh; /* Altura completa */
   position: fixed;
   left: 0;
-  top: 100px;
+  top: 0; /* Pegado arriba */
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -127,7 +127,9 @@
   flex: 1;
   margin-left: 280px;
   padding: 2rem;
-  min-height: calc(100vh - 100px);
+  min-height: 100vh; /* Altura completa */
+  background: #0a0a0a; /* Asegurar fondo oscuro en el contenido principal */
+  color: white; /* Texto blanco por defecto */
 }
 
 .section-title {
@@ -228,7 +230,7 @@
    SEARCH BAR
    ============================================ */
 
-.search-bar {
+.admin-search-bar {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -239,13 +241,13 @@
   margin-bottom: 2rem;
 }
 
-.search-bar .icon {
+.admin-search-bar .icon {
   width: 20px;
   height: 20px;
   color: #FFD700;
 }
 
-.search-bar input {
+.admin-search-bar input {
   flex: 1;
   background: transparent;
   border: none;
@@ -254,7 +256,7 @@
   font-size: 1rem;
 }
 
-.search-bar input::placeholder {
+.admin-search-bar input::placeholder {
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -562,8 +564,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 100px);
+  min-height: 100vh; /* Altura completa */
   color: #FFD700;
+  background: #0a0a0a; /* Fondo oscuro para el loading */
 }
 
 .spinner {

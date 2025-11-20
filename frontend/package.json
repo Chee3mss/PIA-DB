@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@seatsio/seatsio-react": "^15.17.0",
+    "@stripe/react-stripe-js": "^5.4.0",
+    "@stripe/stripe-js": "^8.5.2",
     "axios": "^1.13.2",
     "lucide-react": "^0.548.0",
     "ogl": "^1.0.11",

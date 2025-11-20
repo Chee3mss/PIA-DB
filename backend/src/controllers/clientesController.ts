@@ -187,7 +187,8 @@ export const getComprasCliente = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
 
-    const compras = await query(
+    // Obtener las ventas del cliente
+    const ventas = await query(
       `SELECT v.*, mp.nombre_metodo, 
               COUNT(b.id_boleto) as cantidad_boletos
        FROM Ventas v
@@ -199,9 +200,52 @@ export const getComprasCliente = async (req: Request, res: Response): Promise<vo
       [id]
     );
 
+    // Para cada venta, obtener los detalles de los boletos
+    const comprasConDetalles = await Promise.all(
+      ventas.map(async (venta: any) => {
+        const boletos = await query(
+          `SELECT 
+            b.id_boleto,
+            b.asiento,
+            b.precio_final,
+            b.vigente,
+            tb.nombre_tipo as tipo_boleto,
+            eb.nombre as estado_boleto,
+            e.nombre_evento,
+            e.descripcion as descripcion_evento,
+            e.imagen_url,
+            f.fecha as fecha_funcion,
+            f.hora as hora_funcion,
+            f.id_funcion,
+            a.nombre as nombre_auditorio,
+            s.nombre_sede as nombre_lugar,
+            s.direccion as direccion_lugar,
+            s.ciudad,
+            est.nombre as estado_lugar
+          FROM Boletos b
+          LEFT JOIN Tipo_Boleto tb ON b.id_tipo_boleto = tb.id_tipo_boleto
+          LEFT JOIN Estado_Boleto eb ON b.id_estado_boleto = eb.id_estado_boleto
+          LEFT JOIN Funciones f ON b.id_funcion = f.id_funcion
+          LEFT JOIN Evento e ON f.id_evento = e.id_evento
+          LEFT JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
+          LEFT JOIN Sede s ON a.id_sede = s.id_sede
+          LEFT JOIN Municipio m ON s.ciudad = m.nombre
+          LEFT JOIN Estado est ON m.id_estado = est.id_estado
+          WHERE b.id_venta = ?
+          ORDER BY b.asiento`,
+          [venta.id_venta]
+        );
+
+        return {
+          ...venta,
+          boletos
+        };
+      })
+    );
+
     res.json({
       success: true,
-      data: compras
+      data: comprasConDetalles
     });
   } catch (error) {
     console.error('Error al obtener compras:', error);

@@ -38,9 +38,10 @@ export default function SeatSelection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const chartRef = useRef<any>(null);
+  const [holdToken, setHoldToken] = useState<string | null>(null);
 
-  // Public key global por defecto (puedes ponerlo en variables de entorno)
-  const DEFAULT_PUBLIC_KEY = 'f746befc-30bd-4c29-aa82-e6a52e274ba4';
+  // Workspace key global por defecto (puedes ponerlo en variables de entorno)
+  const DEFAULT_WORKSPACE_KEY = 'f746befc-30bd-4c29-aa82-e6a52e274ba4';
 
   useEffect(() => {
     loadData();
@@ -98,6 +99,14 @@ export default function SeatSelection() {
     }
   };
 
+  const handleChartRendered = (chart: any) => {
+      chartRef.current = chart;
+      // Capture hold token if available
+      if (chart.holdToken) {
+          setHoldToken(chart.holdToken);
+      }
+  };
+
   const handleSeatSelected = (seat: any) => {
     console.log('Asiento seleccionado:', seat);
     setSelectedSeats(prev => {
@@ -118,23 +127,27 @@ export default function SeatSelection() {
       return;
     }
 
-    const total = selectedSeats.reduce((sum, seat) => {
-      const price = seat.pricing?.price || 500;
-      return sum + price;
-    }, 0);
+    // Calculate approximate expiration for display (e.g. 15 mins from now)
+    const holdExpiration = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    // Aquí puedes navegar a la página de checkout o procesar la compra
-    alert(
-      `Has seleccionado ${selectedSeats.length} asiento(s)\n` +
-      `Total: $${total.toLocaleString()}\n\n` +
-      `Asientos: ${selectedSeats.map(s => s.label).join(', ')}\n\n` +
-      `Próximamente: Proceder al pago`
-    );
+    // Simplify seats data to avoid cloning errors in navigation state
+    const simplifiedSeats = selectedSeats.map(seat => ({
+        id: seat.id,
+        label: seat.label,
+        category: seat.category ? { label: seat.category.label } : null,
+        pricing: seat.pricing ? { price: seat.pricing.price } : { price: 500 }
+    }));
 
-    // TODO: Navegar a checkout
-    // navigate(`/checkout/${eventId}/${functionId}`, { 
-    //   state: { selectedSeats, total } 
-    // });
+    // Navigate to Review Page with simplified data
+    navigate(`/event/${eventId}/seats/${functionId}/review`, {
+        state: {
+            selectedSeats: simplifiedSeats,
+            eventoInfo,
+            seatsioConfig,
+            holdToken,
+            holdExpiration
+        }
+    });
   };
 
   const formatFecha = (fecha: string) => {
@@ -147,29 +160,14 @@ export default function SeatSelection() {
     });
   };
 
-  // Loading
-  if (loading) {
-    return (
-      <>
-        <Topbar />
-        <div className="seat-selection-container">
-          <div className="loading-state">
-            <h2>Cargando selección de asientos...</h2>
-            <p>Por favor espera un momento</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   // Error
-  if (error || !seatsioConfig || !eventoInfo) {
+  if (error) {
     return (
       <>
         <Topbar />
         <div className="seat-selection-container">
           <div className="error-state">
-            <h2>❌ {error || 'Error al cargar'}</h2>
+            <h2>❌ {error}</h2>
             <p>
               {error?.includes('configuración de Seats.io') 
                 ? 'Este auditorio aún no tiene configuración de Seats.io. Contacta al administrador.' 
@@ -185,148 +183,131 @@ export default function SeatSelection() {
   }
 
   return (
-    <>
+    <div className="seat-selection-page">
       <Topbar />
-      <div className="seat-selection-container">
-        <button onClick={() => navigate(`/event/${eventId}`)} className="btn-back-top">
-          ← Volver al evento
-        </button>
-
-        {/* Header con información del evento y función */}
-        <div className="selection-header">
-          <div className="event-mini-info">
-            {eventoInfo.imagen_url && (
-              <img 
-                src={eventoInfo.imagen_url} 
-                alt={eventoInfo.nombre_evento}
-                className="event-mini-image"
-              />
-            )}
-            <div className="event-mini-details">
-              <span className="event-mini-category">{eventoInfo.categoria}</span>
-              <h1 className="event-mini-title">{eventoInfo.nombre_evento}</h1>
-              <div className="function-info">
-                <span className="function-date">
-                  📅 {formatFecha(seatsioConfig.funcion.fecha)}
-                </span>
-                <span className="function-time">
-                  🕐 {seatsioConfig.funcion.hora} hrs
-                </span>
-                <span className="function-venue">
-                  📍 {seatsioConfig.auditorio.nombre} - {seatsioConfig.auditorio.sede}
-                </span>
-              </div>
+      
+      <div className="seat-selection-layout">
+        {/* Panel Izquierdo - Mapa */}
+        <div className="map-panel">
+            <button onClick={() => navigate(`/event/${eventId}`)} className="btn-back-floating">
+                ← Volver
+            </button>
+            
+            <div className="seatsio-wrapper-full">
+                {loading ? (
+                    <div className="skeleton-map">
+                        <div className="skeleton-spinner"></div>
+                        <p>Cargando mapa de asientos...</p>
+                    </div>
+                ) : (
+                    seatsioConfig && (
+                        <SeatsioSeatingChart
+                            key={functionId} // Force re-mount on function change
+                            onRenderStarted={handleChartRendered}
+                            workspaceKey={seatsioConfig.seatsio_public_key || DEFAULT_WORKSPACE_KEY}
+                            event={seatsioConfig.seatsio_event_key}
+                            region="na"
+                            onObjectSelected={handleSeatSelected}
+                            onObjectDeselected={handleSeatDeselected}
+                            language="es"
+                            pricing={[
+                                { category: 'VIP', price: 1500 },
+                                { category: 'Premium', price: 1000 },
+                                { category: 'Preferente', price: 800 },
+                                { category: 'General', price: 500 }
+                            ]}
+                            priceFormatter={(price: number) => `$${price.toLocaleString()}`}
+                            session="continue"
+                            maxSelectedObjects={10}
+                            showMinimap={false} 
+                            colorScheme="light"
+                            fitTo="widthAndHeight"
+                        />
+                    )
+                )}
             </div>
-          </div>
         </div>
 
-        {/* Mapa de asientos de Seats.io */}
-        <div className="seatsio-section">
-          <h2>Selecciona tus asientos</h2>
-          
-          <div className="seatsio-wrapper">
-            <div className="seatsio-chart-container">
-              <SeatsioSeatingChart
-                ref={chartRef}
-                publicKey={seatsioConfig.seatsio_public_key || DEFAULT_PUBLIC_KEY}
-                event={seatsioConfig.seatsio_event_key}
-                region="na"
-                onObjectSelected={handleSeatSelected}
-                onObjectDeselected={handleSeatDeselected}
-                language="es"
-                pricing={[
-                  { category: 'VIP', price: 1500 },
-                  { category: 'Premium', price: 1000 },
-                  { category: 'Preferente', price: 800 },
-                  { category: 'General', price: 500 }
-                ]}
-                priceFormatter={(price: number) => `$${price.toLocaleString()}`}
-                session="continue"
-                maxSelectedObjects={10}
-                showMinimap={true}
-                colorScheme="light"
-              />
-            </div>
-          </div>
-
-          {/* Resumen de selección */}
-          <div className="selection-summary">
-            <div className="summary-header">
-              <h3>Tu selección</h3>
-              {selectedSeats.length > 0 && (
-                <button 
-                  className="btn-clear-selection"
-                  onClick={() => {
-                    if (chartRef.current) {
-                      chartRef.current.clearSelection();
-                    }
-                    setSelectedSeats([]);
-                  }}
-                >
-                  Limpiar selección
-                </button>
-              )}
-            </div>
-
-            {selectedSeats.length === 0 ? (
-              <div className="empty-selection">
-                <p>No has seleccionado ningún asiento aún</p>
-                <p className="empty-selection-hint">
-                  Haz clic en los asientos del mapa para seleccionarlos
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="selected-seats-list">
-                  {selectedSeats.map((seat, index) => (
-                    <div key={index} className="selected-seat-item">
-                      <div className="seat-info">
-                        <span className="seat-label">{seat.label}</span>
-                        <span className="seat-category">
-                          {seat.category?.label || 'General'}
-                        </span>
-                      </div>
-                      <span className="seat-price">
-                        ${(seat.pricing?.price || 500).toLocaleString()}
-                      </span>
+        {/* Panel Derecho - Información y Resumen */}
+        <div className="sidebar-panel">
+            <div className="event-header-compact">
+                {loading ? (
+                    <div className="skeleton-header">
+                        <div className="skeleton-thumb"></div>
+                        <div className="skeleton-text-group">
+                            <div className="skeleton-line title"></div>
+                            <div className="skeleton-line subtitle"></div>
+                        </div>
                     </div>
-                  ))}
-                </div>
-                
-                <div className="summary-totals">
-                  <div className="summary-row">
-                    <span>Subtotal ({selectedSeats.length} asiento{selectedSeats.length !== 1 ? 's' : ''}):</span>
-                    <span className="summary-value">
-                      ${selectedSeats.reduce((sum, seat) => 
-                        sum + (seat.pricing?.price || 500), 0
-                      ).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="summary-row summary-total">
-                    <span><strong>Total:</strong></span>
-                    <span className="summary-value-total">
-                      <strong>
-                        ${selectedSeats.reduce((sum, seat) => 
-                          sum + (seat.pricing?.price || 500), 0
-                        ).toLocaleString()}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="event-mini-thumb">
+                            {eventoInfo?.imagen_url && (
+                                <img src={eventoInfo.imagen_url} alt={eventoInfo.nombre_evento} />
+                            )}
+                        </div>
+                        <div className="event-info-text">
+                            <h3>{eventoInfo?.nombre_evento}</h3>
+                            <p className="venue-text">{seatsioConfig?.auditorio.nombre}</p>
+                            <p className="date-text">
+                                {seatsioConfig && formatFecha(seatsioConfig.funcion.fecha)} • {seatsioConfig?.funcion.hora} hrs
+                            </p>
+                        </div>
+                    </>
+                )}
+            </div>
 
-                <button className="btn-continue" onClick={handleContinue}>
-                  Continuar con la compra →
+            <div className="selection-content">
+                <h4>Tus Asientos <span className="badge-count">{selectedSeats.length}</span></h4>
+                
+                {selectedSeats.length === 0 ? (
+                    <div className="empty-state-sidebar">
+                        <div className="empty-icon">🎫</div>
+                        <p>Selecciona asientos en el mapa</p>
+                    </div>
+                ) : (
+                    <div className="selected-seats-scroll">
+                        {selectedSeats.map((seat, index) => (
+                            <div key={index} className="seat-item-row">
+                                <div className="seat-id-box">
+                                    <span className="seat-code">{seat.label}</span>
+                                    <span className="seat-category">{seat.category?.label || 'General'}</span>
+                                </div>
+                                <div className="seat-price-box">
+                                    ${(seat.pricing?.price || 500).toLocaleString()}
+                                    <button 
+                                        className="btn-remove-seat"
+                                        onClick={() => {
+                                            if (chartRef.current) chartRef.current.deselectObjects([seat.id]);
+                                            handleSeatDeselected(seat);
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className="sidebar-footer">
+                <div className="total-row">
+                    <span>Total</span>
+                    <span className="total-amount">
+                        ${selectedSeats.reduce((sum, seat) => sum + (seat.pricing?.price || 500), 0).toLocaleString()}
+                    </span>
+                </div>
+                <button 
+                    className="btn-checkout-large" 
+                    onClick={handleContinue}
+                    disabled={selectedSeats.length === 0}
+                >
+                    Continuar
                 </button>
-              </>
-            )}
-          </div>
+            </div>
         </div>
       </div>
-      
-      <footer>
-        <p>© 2025 StageGo. All rights reserved.</p>
-      </footer>
-    </>
+    </div>
   );
 }
-

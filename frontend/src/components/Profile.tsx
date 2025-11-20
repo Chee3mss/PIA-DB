@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Package, Ticket, CreditCard, ChevronLeft } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Package, Ticket, CreditCard, ChevronLeft, Clock, MapPinIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { authService, clientesService } from '../services/api';
 import Topbar from './TopBar';
 import '../styles/Profile.css';
@@ -16,12 +16,34 @@ interface ClienteInfo {
   estado?: string;
 }
 
+interface Boleto {
+  id_boleto: number;
+  asiento: string;
+  precio_final: number;
+  vigente: number;
+  tipo_boleto: string;
+  estado_boleto: string;
+  nombre_evento: string;
+  descripcion_evento: string;
+  imagen_url: string;
+  fecha_funcion: string;
+  hora_funcion: string;
+  id_funcion: number;
+  nombre_auditorio: string;
+  nombre_lugar: string;
+  direccion_lugar: string;
+  ciudad: string;
+  estado_lugar: string;
+}
+
 interface Compra {
   id_venta: number;
   fecha: string;
+  total: number;
   monto_total: number;
   nombre_metodo: string;
   cantidad_boletos: number;
+  boletos: Boleto[];
 }
 
 export default function Profile() {
@@ -30,6 +52,7 @@ export default function Profile() {
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedCompras, setExpandedCompras] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -84,6 +107,18 @@ export default function Profile() {
       style: 'currency',
       currency: 'MXN'
     }).format(amount);
+  };
+
+  const toggleCompraExpanded = (idVenta: number) => {
+    setExpandedCompras(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(idVenta)) {
+        newSet.delete(idVenta);
+      } else {
+        newSet.add(idVenta);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -252,10 +287,110 @@ export default function Profile() {
                       </div>
                     </div>
 
+                    {/* Resumen de boletos (siempre visible) */}
+                    {compra.boletos && compra.boletos.length > 0 && (
+                      <div className="boletos-summary">
+                        <div className="evento-info-compact">
+                          <h4>{compra.boletos[0].nombre_evento}</h4>
+                          <div className="evento-meta-compact">
+                            <span className="meta-compact">
+                              <Clock className="icon-small" />
+                              {(() => {
+                                const fecha = new Date(compra.boletos[0].fecha_funcion);
+                                const [horas, minutos] = compra.boletos[0].hora_funcion.split(':');
+                                fecha.setHours(parseInt(horas), parseInt(minutos));
+                                return fecha.toLocaleDateString('es-MX', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                });
+                              })()}
+                            </span>
+                            <span className="meta-compact">
+                              <MapPinIcon className="icon-small" />
+                              {compra.boletos[0].ciudad}
+                            </span>
+                          </div>
+                          <div className="asientos-summary">
+                            <strong>Asientos:</strong> {compra.boletos.map(b => b.asiento).join(', ')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detalles completos de los boletos (expandible) */}
+                    {expandedCompras.has(compra.id_venta) && compra.boletos && compra.boletos.length > 0 && (
+                      <div className="boletos-details">
+                        {compra.boletos.map((boleto, index) => (
+                          <div key={boleto.id_boleto} className="boleto-item">
+                            {index === 0 && (
+                              <div className="evento-info">
+                                <h3>{boleto.nombre_evento}</h3>
+                                <div className="evento-meta">
+                                  <div className="meta-item">
+                                    <Clock className="icon" />
+                                    <span>
+                                      {(() => {
+                                        // Combinar fecha y hora
+                                        const fecha = new Date(boleto.fecha_funcion);
+                                        const [horas, minutos] = boleto.hora_funcion.split(':');
+                                        fecha.setHours(parseInt(horas), parseInt(minutos));
+                                        
+                                        return fecha.toLocaleString('es-MX', {
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        });
+                                      })()}
+                                    </span>
+                                  </div>
+                                  <div className="meta-item">
+                                    <MapPinIcon className="icon" />
+                                    <span>{boleto.nombre_lugar} - {boleto.nombre_auditorio}, {boleto.ciudad}, {boleto.estado_lugar}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="boleto-details-row">
+                              <div className="boleto-info">
+                                <Ticket className="icon" />
+                                <div>
+                                  <strong>Asiento: {boleto.asiento}</strong>
+                                  <span className="boleto-tipo">{boleto.tipo_boleto}</span>
+                                </div>
+                              </div>
+                              <div className="boleto-precio">
+                                {formatCurrency(boleto.precio_final)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="compra-footer">
+                      <button 
+                        className="ver-detalles-btn"
+                        onClick={() => toggleCompraExpanded(compra.id_venta)}
+                      >
+                        {expandedCompras.has(compra.id_venta) ? (
+                          <>
+                            <ChevronUp className="icon" />
+                            Ocultar detalles
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="icon" />
+                            Ver más detalles
+                          </>
+                        )}
+                      </button>
                       <div className="compra-total">
                         <span>Total:</span>
-                        <strong>{formatCurrency(compra.monto_total)}</strong>
+                        <strong>{formatCurrency(compra.total || compra.monto_total)}</strong>
                       </div>
                     </div>
                   </div>
@@ -280,14 +415,6 @@ export default function Profile() {
                 <div className="stat-content">
                   <h3>{compras.reduce((acc, c) => acc + c.cantidad_boletos, 0)}</h3>
                   <p>Boletos adquiridos</p>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <CreditCard className="stat-icon" />
-                <div className="stat-content">
-                  <h3>{formatCurrency(compras.reduce((acc, c) => acc + c.monto_total, 0))}</h3>
-                  <p>Gastado en total</p>
                 </div>
               </div>
             </div>

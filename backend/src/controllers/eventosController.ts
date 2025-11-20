@@ -6,9 +6,23 @@ import { RowDataPacket } from 'mysql2';
 export const getEventos = async (_req: Request, res: Response) => {
   try {
     const [eventos] = await pool.execute<RowDataPacket[]>(
-      `SELECT e.*, te.nombre_tipo as categoria
+      `SELECT e.*, te.nombre_tipo as categoria,
+              loc.ciudad, loc.nombre_sede as lugar, loc.ciudades,
+              es.nombre as estado
        FROM Evento e
        JOIN Tipo_Evento te ON e.id_tipo_evento = te.id_tipo_evento
+       LEFT JOIN (
+           SELECT f.id_evento, 
+                  MAX(s.ciudad) as ciudad, 
+                  MAX(s.nombre_sede) as nombre_sede,
+                  GROUP_CONCAT(DISTINCT s.ciudad SEPARATOR ', ') as ciudades
+           FROM Funciones f
+           JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
+           JOIN Sede s ON a.id_sede = s.id_sede
+           GROUP BY f.id_evento
+       ) loc ON e.id_evento = loc.id_evento
+       LEFT JOIN Municipio m ON loc.ciudad = m.nombre
+       LEFT JOIN Estado es ON m.id_estado = es.id_estado
        ORDER BY e.fecha_inicio ASC`
     );
 
@@ -43,7 +57,7 @@ export const getEventoById = async (req: Request, res: Response) => {
 
     // Obtener funciones del evento
     const [funciones] = await pool.execute<RowDataPacket[]>(
-      `SELECT f.*, a.nombre as auditorio, s.nombre_sede
+      `SELECT f.*, a.nombre as auditorio, s.nombre_sede, s.ciudad, s.direccion
        FROM Funciones f
        JOIN Auditorio a ON f.id_auditorio = a.id_auditorio
        JOIN Sede s ON a.id_sede = s.id_sede

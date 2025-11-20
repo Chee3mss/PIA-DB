@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../styles/Carousel.css';
 
 interface CarouselProps {
@@ -13,6 +14,8 @@ export interface CarouselItem {
   image?: string;
   imageUrl?: string;
   description?: string;
+  location?: string;
+  category?: string; // Nueva propiedad opcional
 }
 
 const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
@@ -43,7 +46,7 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
           disabled={!canGoPrev}
           aria-label="Previous slide"
         >
-          &#8249;
+          <ChevronLeft size={24} />
         </button>
         <div className="carousel-wrapper">
           <div
@@ -59,15 +62,14 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
                 onClick={() => navigate(`/event/${item.id}`)}
               >
                 <div className="carousel-item-content">
-                  {(item.image || item.imageUrl) ? (
-                    <>
+                  <div className="carousel-item-image-container">
+                    {(item.image || item.imageUrl) ? (
                       <img
                         src={item.image || item.imageUrl}
                         alt={item.title}
                         className="carousel-item-image"
                         onError={(e) => {
                           console.error('Error cargando imagen:', item.image || item.imageUrl);
-                          // Si la imagen falla, mostrar placeholder
                           (e.target as HTMLImageElement).style.display = 'none';
                           const parent = (e.target as HTMLImageElement).parentElement;
                           if (parent) {
@@ -78,21 +80,31 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
                           }
                         }}
                       />
-                      <div className="carousel-item-placeholder" style={{ display: 'none' }}>
-                        <span>{item.title.charAt(0)}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="carousel-item-placeholder" style={{ display: 'flex' }}>
+                    ) : null}
+                    <div className="carousel-item-placeholder" style={{ display: (item.image || item.imageUrl) ? 'none' : 'flex' }}>
                       <span>{item.title.charAt(0)}</span>
                     </div>
-                  )}
-                  <h3 className="carousel-item-title">{item.title}</h3>
-                  {item.description && (
-                    <p className="carousel-item-description">
-                      {item.description}
-                    </p>
-                  )}
+                  </div>
+                  
+                  <div className="carousel-item-details">
+                    {item.category && (
+                      <span className="carousel-item-category">{item.category}</span>
+                    )}
+                    <h3 className="carousel-item-title">{item.title}</h3>
+                    {item.description && (
+                      <p className="carousel-item-description">
+                        {item.description}
+                      </p>
+                    )}
+                    <div className="carousel-item-meta">
+                      {item.location && (
+                        <div className="carousel-item-location">
+                          <MapPin size={16} />
+                          <span>{item.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -104,7 +116,7 @@ const Carousel: React.FC<CarouselProps> = ({ title, items }) => {
           disabled={!canGoNext}
           aria-label="Next slide"
         >
-          &#8250;
+          <ChevronRight size={24} />
         </button>
       </div>
     </div>

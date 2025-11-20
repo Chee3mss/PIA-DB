@@ -130,10 +130,13 @@ export const createEventForFunction = async (req: Request, res: Response) => {
 
     // Crear evento en Seats.io
     const eventName = `${funcion.nombre_evento} - ${funcion.auditorio_nombre} - ${funcion.fecha} ${funcion.hora}`;
+    // Formatear fecha a YYYY-MM-DD (requerido por Seats.io)
+    const formattedDate = new Date(funcion.fecha).toISOString().split('T')[0];
+    
     const seatsioEvent = await seatsioService.createEvent({
       chartKey: useChartKey,
       eventName,
-      date: funcion.fecha
+      date: formattedDate
     });
 
     // Actualizar la función con el event key
@@ -223,11 +226,13 @@ export const syncAllFunctions = async (_req: Request, res: Response) => {
     for (const funcion of funciones) {
       try {
         const eventName = `${funcion.nombre_evento} - ${funcion.auditorio_nombre} - ${funcion.fecha} ${funcion.hora}`;
+        // Formatear fecha a YYYY-MM-DD (requerido por Seats.io)
+        const formattedDate = new Date(funcion.fecha).toISOString().split('T')[0];
         
         const seatsioEvent = await seatsioService.createEvent({
           chartKey: defaultChartKey,
           eventName,
-          date: funcion.fecha
+          date: formattedDate
         });
 
         await pool.execute(

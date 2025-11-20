@@ -74,6 +74,10 @@ export interface Evento {
   id_tipo_evento: number;
   id_empleado: number;
   tipo_evento_nombre?: string;
+  ciudad?: string;
+  ciudades?: string;
+  estado?: string;
+  lugar?: string;
 }
 
 export interface Funcion {
@@ -87,6 +91,8 @@ export interface Funcion {
   id_auditorio: number;
   auditorio_nombre?: string;
   nombre_sede?: string;
+  ciudad?: string;
+  direccion?: string;
 }
 
 export interface EventoDetalle extends Evento {

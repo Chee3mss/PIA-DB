@@ -6,6 +6,7 @@ import type { CarouselItem } from './Carousel'
 import type { HeroSlide } from './HeroCarousel'
 import { carouselService, eventosService } from '../services/api';
 import type { Evento, Categoria } from '../services/api';
+import SkeletonLoader from './SkeletonLoader';
 import '../styles/Welcome.css'
 
 export default function Welcome() {
@@ -13,6 +14,7 @@ export default function Welcome() {
     const [eventos, setEventos] = useState<Evento[]>([]);
     const [categorias, setCategorias] = useState<Categoria[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedLocation, setSelectedLocation] = useState('México');
 
     // Cargar datos al montar el componente
     useEffect(() => {
@@ -52,45 +54,64 @@ export default function Welcome() {
     // Convertir eventos a CarouselItems
     const eventosToCarouselItems = (eventos: Evento[]): CarouselItem[] => {
         return eventos.map(evento => {
-            console.log('Evento:', evento.nombre_evento, 'Imagen:', evento.imagen_url);
+            // Construir string de ubicación
+            let locationStr = 'Ubicación por confirmar';
+            
+            // Si hay múltiples ciudades (gira), usar eso
+            if (evento.ciudades && evento.ciudades.includes(',')) {
+                locationStr = 'Gira Nacional';
+            } else if (evento.lugar) {
+                locationStr = evento.lugar;
+                if (evento.ciudad) locationStr += `, ${evento.ciudad}`;
+            } else if (evento.ciudad) {
+                locationStr = evento.ciudad;
+                if (evento.estado) locationStr += `, ${evento.estado}`;
+            }
+
             return {
                 id: evento.id_evento,
                 title: evento.nombre_evento,
                 description: evento.clasificacion || evento.descripcion?.substring(0, 50),
-                imageUrl: evento.imagen_url
+                imageUrl: evento.imagen_url,
+                location: locationStr,
+                category: evento.categoria // Asegúrate de que el backend devuelva esto (ya lo hace)
             };
         });
     };
 
     // Filtrar eventos por categoría
     const getEventosByCategoria = (idCategoria: number): CarouselItem[] => {
-        const eventosFiltrados = eventos.filter(e => e.id_tipo_evento === idCategoria);
+        let eventosFiltrados = eventos.filter(e => e.id_tipo_evento === idCategoria);
+        
+        // Filtrar por ubicación si no es "México" (que asumimos como "Todos")
+        if (selectedLocation && selectedLocation !== 'México') {
+            eventosFiltrados = eventosFiltrados.filter(e => {
+                // Normalizar para comparación
+                const loc = selectedLocation.toLowerCase();
+                const estado = e.estado?.toLowerCase() || '';
+                const ciudad = e.ciudad?.toLowerCase() || '';
+                const ciudades = e.ciudades?.toLowerCase() || '';
+                
+                // Verificar si la ciudad buscada está en la lista de ciudades del evento (para giras)
+                return estado.includes(loc) || ciudad.includes(loc) || ciudades.includes(loc);
+            });
+        }
+
         return eventosToCarouselItems(eventosFiltrados);
     };
 
     if (loading) {
         return (
             <>
-                <Topbar/>
-                <div style={{ 
-                    minHeight: '100vh', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    background: '#f5f5f5'
-                }}>
-                    <div style={{ textAlign: 'center' }}>
-                        <h2>Cargando eventos...</h2>
-                        <p>Por favor espera un momento</p>
-                    </div>
-                </div>
+                <Topbar selectedLocation={selectedLocation} onLocationChange={setSelectedLocation}/>
+                <SkeletonLoader />
             </>
         );
     }
 
     return (
       <>
-        <Topbar/>
+        <Topbar selectedLocation={selectedLocation} onLocationChange={setSelectedLocation}/>
         {heroSlides.length > 0 && (
             <HeroCarousel slides={heroSlides} autoPlay={true} autoPlayInterval={5000} />
         )}
@@ -101,11 +122,6 @@ export default function Welcome() {
               {categorias.map(categoria => {
                   const items = getEventosByCategoria(categoria.id_tipo_evento);
                   if (items.length === 0) return null;
-                  
-                  console.log(`Categoría: ${categoria.nombre_tipo}, Items: ${items.length}`);
-                  items.forEach(item => {
-                    console.log(`  - ${item.title}, Imagen: ${item.imageUrl || 'SIN IMAGEN'}`);
-                  });
                   
                   return (
                       <Carousel 
@@ -118,9 +134,8 @@ export default function Welcome() {
             </>
           ) : (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <h2>Cargando eventos...</h2>
-                <p>Total eventos cargados: {eventos.length}</p>
-                <p>Total categorías: {categorias.length}</p>
+                <h2>No hay eventos disponibles</h2>
+                <p>Intenta cambiar la ubicación o vuelve más tarde.</p>
             </div>
           )}
         </main>
