@@ -15,6 +15,8 @@ import auditoriosRoutes from './routes/auditorios';
 import seatsioRoutes from './routes/seatsio';
 import funcionesRoutes from './routes/funciones';
 import paymentsRoutes from './routes/payments';
+import reportesRoutes from './routes/reportes';
+import testRoutes from './routes/test';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -100,6 +102,8 @@ app.use('/api/auditorios', auditoriosRoutes);
 app.use('/api/seatsio', seatsioRoutes);
 app.use('/api/funciones', funcionesRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/reportes', reportesRoutes);
+app.use('/api/test', testRoutes);
 
 // Ruta 404 - No encontrado
 app.use((req: Request, res: Response) => {
@@ -134,7 +138,7 @@ const startServer = async () => {
       console.error(' No se pudo conectar a la base de datos. Verifica las credenciales.');
       process.exit(1);
     }
-    
+
     // Iniciar servidor HTTP
     app.listen(PORT, () => {
       console.log(` Base de datos: Conectada`);
