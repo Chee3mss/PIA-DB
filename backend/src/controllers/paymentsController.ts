@@ -60,22 +60,6 @@ const registerPurchase = async (res: Response, items: any[], customerId: number,
   const connection = await pool.getConnection();
 
   try {
-    // 0. Verificar Idempotencia: Si ya existe una transacción con este ID, no volver a registrar
-    const [existingTransaction]: any = await connection.query(
-      'SELECT id_venta FROM Transacciones WHERE referencia_pago = ?',
-      [transactionId]
-    );
-
-    if (existingTransaction.length > 0) {
-      console.log(`Transacción ${transactionId} ya procesada. Retornando venta existente.`);
-      connection.release();
-      return res.json({ 
-        success: true, 
-        idVenta: existingTransaction[0].id_venta, 
-        message: "Compra ya registrada previamente" 
-      });
-    }
-
     await connection.beginTransaction();
 
     // 1. Preparar datos para el SP
@@ -115,18 +99,7 @@ const registerPurchase = async (res: Response, items: any[], customerId: number,
     const [rows]: any = await connection.query('SELECT @id_venta as id_venta');
     const idVenta = rows[0].id_venta;
 
-    // 4. Registrar Transacción (Opcional, mantenemos lógica original)
-    try {
-      await connection.execute(
-        `INSERT INTO Transacciones (id_venta, monto, fecha, estado, referencia_pago)
-                 VALUES (?, ?, NOW(), 'Completado', ?)`,
-        [idVenta, total, transactionId]
-      );
-    } catch (e) {
-      console.warn("Tabla Transacciones podría no existir, continuando...", e);
-    }
-
-    // 5. Obtener eventKey de Seats.io para esta función (para el booking)
+    // 4. Obtener eventKey de Seats.io para esta función (para el booking)
     const [funcionRows] = await connection.execute<RowDataPacket[]>(
       'SELECT seatsio_event_key FROM Funciones WHERE id_funcion = ?',
       [functionId]
@@ -134,7 +107,7 @@ const registerPurchase = async (res: Response, items: any[], customerId: number,
 
     const seatsioEventKey = funcionRows[0]?.seatsio_event_key;
 
-    // 4. Reservar en Seats.io (BOOKING REAL)
+    // 5. Reservar en Seats.io (BOOKING REAL)
     if (seatsioEventKey) {
       try {
         // Importar el servicio de Seats.io aquí para evitar problemas de dependencia circular si las hubiera
