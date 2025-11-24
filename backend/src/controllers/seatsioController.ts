@@ -330,7 +330,8 @@ export const getEventKeyForFunction = async (req: Request, res: Response) => {
     const [precios] = await pool.execute<RowDataPacket[]>(
       `SELECT 
         tb.nombre_tipo as category,
-        tb.precio_base as price
+        tb.precio_base as price,
+        z.nombre_zona as zona
        FROM Tipo_Boleto tb
        JOIN Zonas z ON tb.id_zona = z.id_zona
        WHERE z.id_auditorio = ? AND tb.activo = 1
@@ -338,11 +339,47 @@ export const getEventKeyForFunction = async (req: Request, res: Response) => {
       [funcion.id_auditorio]
     );
 
-    // Formatear precios para Seats.io
-    const pricing = precios.map((p: any) => ({
-      category: p.category,
-      price: parseFloat(p.price)
+    // Mapeo simplificado de nombres de zonas a categorías de Seats.io
+    // Solo usamos VIP y General para todos los auditorios
+    const mapearCategoria = (nombreTipo: string, nombreZona: string): string => {
+      const nombre = nombreTipo.toLowerCase().trim();
+      const zona = nombreZona.toLowerCase().trim();
+      
+      // Mapeo directo: Si la zona es VIP o General, usar tal cual
+      if (zona === 'vip') return 'VIP';
+      if (zona === 'general') return 'General';
+      
+      // Mapeo por palabras clave en el nombre del tipo
+      if (nombre.includes('vip')) return 'VIP';
+      if (nombre.includes('general')) return 'General';
+      
+      // Por defecto, usar el nombre de la zona
+      return nombreZona;
+    };
+
+    // Formatear precios para Seats.io con mapeo
+    const pricingMap = new Map<string, number>();
+    
+    precios.forEach((p: any) => {
+      const categoria = mapearCategoria(p.category, p.zona);
+      const precio = parseFloat(p.price);
+      
+      // Si la categoría ya existe, mantener el precio más alto (generalmente es VIP)
+      if (!pricingMap.has(categoria) || pricingMap.get(categoria)! < precio) {
+        pricingMap.set(categoria, precio);
+      }
+    });
+
+    const pricing = Array.from(pricingMap.entries()).map(([category, price]) => ({
+      category,
+      price
     }));
+
+    // Debug: Imprimir precios para verificar
+    console.log('🎫 Precios configurados para Seats.io:');
+    console.log('📍 Auditorio:', funcion.auditorio_nombre);
+    console.log('💰 Pricing:', pricing);
+    console.log('📋 Datos originales de BD:', precios);
 
     res.json({
       seatsio_event_key: funcion.seatsio_event_key,

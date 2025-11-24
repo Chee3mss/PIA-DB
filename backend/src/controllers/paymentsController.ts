@@ -68,11 +68,26 @@ const registerPurchase = async (res: Response, items: any[], customerId: number,
     const idMetodoPago = 1; // Tarjeta de crédito
     const idPromocion = null; // Por ahora null
 
-    const ticketsJson = JSON.stringify(items.map((item: any) => ({
-      id_funcion: functionId,
-      asiento: item.label || item.id,
-      precio: item.pricing?.price || 500
-    })));
+    const ticketsJson = JSON.stringify(items.map((item: any) => {
+      // Extraer la categoría correctamente (puede venir como string o como objeto con label)
+      let categoria = 'General';
+      if (item.pricing?.category) {
+        categoria = typeof item.pricing.category === 'string' 
+          ? item.pricing.category 
+          : item.pricing.category.label || 'General';
+      } else if (item.category) {
+        categoria = typeof item.category === 'string'
+          ? item.category
+          : item.category.label || 'General';
+      }
+      
+      return {
+        id_funcion: functionId,
+        asiento: item.label || item.id,
+        precio: item.pricing?.price || 500,
+        categoria: categoria
+      };
+    }));
 
     // 2. Llamar al Stored Procedure
     await connection.query(

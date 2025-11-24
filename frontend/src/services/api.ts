@@ -802,5 +802,148 @@ export const tipoBoletosService = {
   },
 };
 
+// ============================================
+// REPORTES SERVICE
+// ============================================
+
+export interface VentaDelDia {
+  id_venta: number;
+  fecha: string;
+  total: number;
+  cliente: string;
+  empleado: string;
+  cantidad_boletos: number;
+  evento: string;
+}
+
+export interface ResumenVentasDelDia {
+  total_ventas: number;
+  total_recaudado: number;
+  total_boletos: number;
+}
+
+export interface FuncionMasVendida {
+  id_funcion: number;
+  nombre_evento: string;
+  fecha: string;
+  hora: string;
+  auditorio: string;
+  nombre_sede: string;
+  boletos_vendidos: number;
+  recaudacion: number;
+  capacidad: number;
+  porcentaje_ocupacion: number;
+}
+
+export interface ClienteTop {
+  id_cliente: number;
+  nombre_completo: string;
+  email: string;
+  telefono: string;
+  total_compras: number;
+  total_boletos: number;
+  total_gastado: number;
+  ultima_compra: string;
+}
+
+export interface HorarioVentas {
+  hora: number;
+  total_funciones: number;
+  total_boletos_vendidos: number;
+  total_recaudacion: number;
+  promedio_boletos_por_funcion: number;
+}
+
+export interface EventoMasVendido {
+  id_evento: number;
+  nombre_evento: string;
+  imagen_url: string;
+  tipo_evento: string;
+  total_funciones: number;
+  total_boletos_vendidos: number;
+  total_recaudacion: number;
+  promedio_boletos_por_funcion: number;
+  primera_funcion: string;
+  ultima_funcion: string;
+}
+
+export interface EstadisticasGenerales {
+  ventas: {
+    total_ventas: number;
+    total_recaudado: number;
+  };
+  boletos: {
+    total_boletos: number;
+  };
+  clientes: {
+    total_clientes: number;
+  };
+  eventos: {
+    total_eventos: number;
+  };
+  eventosMasPopulares: Array<{
+    nombre_evento: string;
+    boletos_vendidos: number;
+  }>;
+  metodosPago: Array<{
+    nombre_metodo: string;
+    total_usos: number;
+    monto_total: number;
+  }>;
+}
+
+export const reportesService = {
+  // Ventas del día actual
+  getVentasDelDia: async (): Promise<{ ventas: VentaDelDia[]; resumen: ResumenVentasDelDia }> => {
+    const response = await api.get('/reportes/ventas-del-dia');
+    return response.data.data;
+  },
+
+  // Funciones más vendidas
+  getFuncionesMasVendidas: async (fecha_inicio?: string, fecha_fin?: string): Promise<FuncionMasVendida[]> => {
+    const params = new URLSearchParams();
+    if (fecha_inicio) params.append('fecha_inicio', fecha_inicio);
+    if (fecha_fin) params.append('fecha_fin', fecha_fin);
+    
+    const response = await api.get(`/reportes/funciones-mas-vendidas?${params.toString()}`);
+    return response.data.data;
+  },
+
+  // Clientes top
+  getClientesTop: async (limite?: number): Promise<ClienteTop[]> => {
+    const params = limite ? `?limite=${limite}` : '';
+    const response = await api.get(`/reportes/clientes-top${params}`);
+    return response.data.data;
+  },
+
+  // Horarios con más ventas
+  getHorariosVentas: async (): Promise<HorarioVentas[]> => {
+    const response = await api.get('/reportes/horarios-ventas');
+    return response.data.data;
+  },
+
+  // Eventos más vendidos
+  getEventosMasVendidos: async (fecha_inicio?: string, fecha_fin?: string): Promise<EventoMasVendido[]> => {
+    const params = new URLSearchParams();
+    if (fecha_inicio) params.append('fecha_inicio', fecha_inicio);
+    if (fecha_fin) params.append('fecha_fin', fecha_fin);
+    
+    const response = await api.get(`/reportes/eventos-mas-vendidos?${params.toString()}`);
+    return response.data.data;
+  },
+
+  // Estadísticas generales
+  getEstadisticasGenerales: async (): Promise<EstadisticasGenerales> => {
+    const response = await api.get('/reportes/estadisticas-generales');
+    return response.data.data;
+  },
+
+  // Sincronizar estadísticas de funciones
+  syncFuncionesStats: async (): Promise<ApiResponse> => {
+    const response = await api.post('/reportes/sync-funciones-stats');
+    return response.data;
+  },
+};
+
 export default api;
 

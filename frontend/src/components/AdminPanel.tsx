@@ -14,12 +14,13 @@ import {
   Search,
   Building2,
   Settings,
-  CreditCard
+  CreditCard,
+  BarChart3
 } from 'lucide-react';
-import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, tipoBoletosService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData, type TipoBoletoDeta } from '../services/api';
+import { authService, adminService, clientesService, ventasService, auditoriosService, funcionesService, tipoBoletosService, reportesService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData, type TipoBoletoDeta } from '../services/api';
 import '../styles/AdminPanel.css';
 
-type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio' | 'precios';
+type Section = 'dashboard' | 'eventos' | 'compras' | 'clientes' | 'auditorios' | 'seatsio' | 'precios' | 'reportes';
 
 interface Evento {
   id_evento: number;
@@ -91,6 +92,12 @@ export default function AdminPanel() {
   // Estado para modo de entrada de Seats.io en modal de auditorio
   const [seatsioInputMode, setSeatsioInputMode] = useState<'select' | 'manual'>('select');
 
+  // Estados para reportes
+  const [reportesData, setReportesData] = useState<any>(null);
+  const [loadingReportes, setLoadingReportes] = useState(false);
+  const [fechaInicioReporte, setFechaInicioReporte] = useState('');
+  const [fechaFinReporte, setFechaFinReporte] = useState('');
+
   useEffect(() => {
     const user = authService.getCurrentUser();
     
@@ -105,7 +112,7 @@ export default function AdminPanel() {
 
     // Manejar hash de URL
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['dashboard', 'eventos', 'compras', 'boletos', 'clientes', 'auditorios', 'seatsio'].includes(hash)) {
+    if (hash && ['dashboard', 'eventos', 'compras', 'clientes', 'auditorios', 'seatsio'].includes(hash)) {
       setCurrentSection(hash as Section);
     }
   }, [navigate]);
@@ -129,15 +136,31 @@ export default function AdminPanel() {
       case 'precios':
         if (tipoBoletos.length === 0) loadTipoBoletos();
         break;
+      case 'reportes':
+        loadReportes();
+        break;
     }
   }, [currentSection]);
 
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      // Cargar eventos
-      const eventosData = await adminService.getAllEventos();
+      // Cargar eventos, compras y clientes para el dashboard
+      const [eventosData, comprasData, clientesData] = await Promise.all([
+        adminService.getAllEventos(),
+        ventasService.getAllVentas(),
+        clientesService.getAllClientes()
+      ]);
+      console.log('Datos de compras recibidos:', comprasData);
+      console.log('Total de compras:', comprasData.length);
+      if (comprasData.length > 0) {
+        console.log('Ejemplo de compra:', comprasData[0]);
+        console.log('cantidad_boletos del ejemplo:', comprasData[0].cantidad_boletos);
+        console.log('Todas las cantidades:', comprasData.map(c => c.cantidad_boletos));
+      }
       setEventos(eventosData);
+      setCompras(comprasData);
+      setClientes(clientesData);
       setLoading(false);
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -184,6 +207,50 @@ export default function AdminPanel() {
       setTipoBoletos(tipoBoletosDeta);
     } catch (error) {
       console.error('Error cargando tipos de boleto:', error);
+    }
+  };
+
+  const loadReportes = async () => {
+    try {
+      setLoadingReportes(true);
+      
+      // Primero sincronizar estadísticas de funciones
+      try {
+        await reportesService.syncFuncionesStats();
+      } catch (syncError) {
+        console.warn('No se pudo sincronizar estadísticas:', syncError);
+      }
+      
+      // Cargar todos los reportes en paralelo
+      const [
+        ventasDelDia,
+        funcionesMasVendidas,
+        clientesTop,
+        horariosVentas,
+        eventosMasVendidos,
+        estadisticasGenerales
+      ] = await Promise.all([
+        reportesService.getVentasDelDia(),
+        reportesService.getFuncionesMasVendidas(fechaInicioReporte || undefined, fechaFinReporte || undefined),
+        reportesService.getClientesTop(10),
+        reportesService.getHorariosVentas(),
+        reportesService.getEventosMasVendidos(fechaInicioReporte || undefined, fechaFinReporte || undefined),
+        reportesService.getEstadisticasGenerales()
+      ]);
+
+      setReportesData({
+        ventasDelDia,
+        funcionesMasVendidas,
+        clientesTop,
+        horariosVentas,
+        eventosMasVendidos,
+        estadisticasGenerales
+      });
+      
+      setLoadingReportes(false);
+    } catch (error) {
+      console.error('Error cargando reportes:', error);
+      setLoadingReportes(false);
     }
   };
 
@@ -538,14 +605,6 @@ export default function AdminPanel() {
             </button>
 
             <button
-              className={`nav-item ${currentSection === 'boletos' ? 'active' : ''}`}
-              onClick={() => handleSectionChange('boletos')}
-            >
-              <Ticket className="icon" />
-              <span>Boletos</span>
-            </button>
-
-            <button
               className={`nav-item ${currentSection === 'clientes' ? 'active' : ''}`}
               onClick={() => handleSectionChange('clientes')}
             >
@@ -575,6 +634,14 @@ export default function AdminPanel() {
             >
               <CreditCard className="icon" />
               <span>Precios</span>
+            </button>
+
+            <button
+              className={`nav-item ${currentSection === 'reportes' ? 'active' : ''}`}
+              onClick={() => handleSectionChange('reportes')}
+            >
+              <BarChart3 className="icon" />
+              <span>Reportes</span>
             </button>
           </nav>
 
@@ -627,7 +694,7 @@ export default function AdminPanel() {
                     <Ticket />
                   </div>
                   <div className="stat-info">
-                    <h3>0</h3>
+                    <h3>{compras.reduce((total, compra) => total + (Number(compra.cantidad_boletos) || 0), 0)}</h3>
                     <p>Boletos Vendidos</p>
                   </div>
                 </div>
@@ -743,13 +810,12 @@ export default function AdminPanel() {
                       <th>Fecha</th>
                       <th>Boletos</th>
                       <th>Total</th>
-                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {compras.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="empty-message">
+                        <td colSpan={6} className="empty-message">
                           No hay compras registradas
                         </td>
                       </tr>
@@ -762,39 +828,11 @@ export default function AdminPanel() {
                           <td>{formatDate(compra.fecha)}</td>
                           <td>{compra.cantidad_boletos}</td>
                           <td>{formatCurrency(compra.total)}</td>
-                          <td>
-                            <button className="btn-action view">
-                              <Eye className="icon" />
-                            </button>
-                          </td>
                         </tr>
                       ))
                     )}
                   </tbody>
                 </table>
-              </div>
-            </div>
-          )}
-
-          {/* Boletos */}
-          {currentSection === 'boletos' && (
-            <div className="boletos-section">
-              <h1 className="section-title">Boletos</h1>
-              
-              <div className="admin-search-bar">
-                <Search className="icon" />
-                <input
-                  type="text"
-                  placeholder="Buscar boletos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="empty-state">
-                <Ticket className="empty-icon" />
-                <h3>Gestión de Boletos</h3>
-                <p>Próximamente disponible</p>
               </div>
             </div>
           )}
@@ -824,13 +862,12 @@ export default function AdminPanel() {
                       <th>Teléfono</th>
                       <th>Registro</th>
                       <th>Ubicación</th>
-                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {clientes.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="empty-message">
+                        <td colSpan={6} className="empty-message">
                           No hay clientes registrados
                         </td>
                       </tr>
@@ -843,11 +880,6 @@ export default function AdminPanel() {
                           <td>{cliente.telefono || 'N/A'}</td>
                           <td>{formatDate(cliente.fecha_registro)}</td>
                           <td>{cliente.municipio || 'N/A'}</td>
-                          <td>
-                            <button className="btn-action view">
-                              <Eye className="icon" />
-                            </button>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -948,21 +980,6 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
               </div>
-
-              {/* Información sobre Seats.io */}
-              <div className="seatsio-info-card">
-                <h3>🎭 Configuración de Seats.io</h3>
-                <p>
-                  Para vincular un auditorio con Seats.io, necesitas obtener el <strong>Event Key</strong> desde tu cuenta de Seats.io.
-                </p>
-                <ul>
-                  <li>Accede a tu cuenta en <a href="https://app.seats.io" target="_blank" rel="noopener noreferrer">app.seats.io</a></li>
-                  <li>Crea un nuevo evento o selecciona uno existente</li>
-                  <li>Copia el Event Key del evento</li>
-                  <li>Haz clic en "Editar" en el auditorio que desees configurar</li>
-                  <li>Pega el Event Key en el campo correspondiente</li>
-                </ul>
-              </div>
             </div>
           )}
 
@@ -1044,17 +1061,312 @@ export default function AdminPanel() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
 
-              {/* Información */}
-              <div className="seatsio-info-card" style={{ marginTop: '2rem' }}>
-                <h3>💰 Información sobre Precios</h3>
-                <ul>
-                  <li>Los precios se aplican por tipo de boleto y zona del auditorio</li>
-                  <li>Cada auditorio puede tener diferentes zonas (VIP, General, etc.)</li>
-                  <li>Los cambios de precio se aplican inmediatamente a nuevas compras</li>
-                  <li>Las ventas ya realizadas mantienen el precio al momento de la compra</li>
-                </ul>
+          {/* Reportes */}
+          {currentSection === 'reportes' && (
+            <div className="reportes-section">
+              <div className="section-header">
+                <h1 className="section-title">📊 Reportes y Estadísticas</h1>
+                <p className="section-subtitle">Análisis detallado de ventas y rendimiento</p>
               </div>
+
+              {/* Filtros de fecha */}
+              <div className="reportes-filters">
+                <div className="filter-group">
+                  <label htmlFor="fecha_inicio_reporte">Fecha Inicio:</label>
+                  <input
+                    type="date"
+                    id="fecha_inicio_reporte"
+                    value={fechaInicioReporte}
+                    onChange={(e) => setFechaInicioReporte(e.target.value)}
+                  />
+                </div>
+                <div className="filter-group">
+                  <label htmlFor="fecha_fin_reporte">Fecha Fin:</label>
+                  <input
+                    type="date"
+                    id="fecha_fin_reporte"
+                    value={fechaFinReporte}
+                    onChange={(e) => setFechaFinReporte(e.target.value)}
+                  />
+                </div>
+                <button className="btn-primary" onClick={loadReportes} disabled={loadingReportes}>
+                  {loadingReportes ? '⏳ Cargando...' : '🔄 Actualizar Reportes'}
+                </button>
+              </div>
+
+              {loadingReportes ? (
+                <div className="loading-container">
+                  <div className="spinner"></div>
+                  <p>Cargando reportes...</p>
+                </div>
+              ) : reportesData ? (
+                <>
+                  {/* Estadísticas Generales */}
+                  <div className="reportes-grid">
+                    <div className="reporte-card">
+                      <h3>💰 Total Recaudado</h3>
+                      <p className="reporte-value">
+                        {formatCurrency(reportesData.estadisticasGenerales.ventas.total_recaudado || 0)}
+                      </p>
+                      <p className="reporte-label">{reportesData.estadisticasGenerales.ventas.total_ventas} ventas totales</p>
+                    </div>
+
+                    <div className="reporte-card">
+                      <h3>🎫 Boletos Vendidos</h3>
+                      <p className="reporte-value">{reportesData.estadisticasGenerales.boletos.total_boletos || 0}</p>
+                      <p className="reporte-label">Total de boletos</p>
+                    </div>
+
+                    <div className="reporte-card">
+                      <h3>👥 Clientes</h3>
+                      <p className="reporte-value">{reportesData.estadisticasGenerales.clientes.total_clientes || 0}</p>
+                      <p className="reporte-label">Clientes registrados</p>
+                    </div>
+
+                    <div className="reporte-card">
+                      <h3>📅 Eventos Activos</h3>
+                      <p className="reporte-value">{reportesData.estadisticasGenerales.eventos.total_eventos || 0}</p>
+                      <p className="reporte-label">Eventos próximos</p>
+                    </div>
+                  </div>
+
+                  {/* Ventas del Día */}
+                  <div className="reporte-section">
+                    <h2>💵 Ventas del Día Actual</h2>
+                    {reportesData.ventasDelDia.ventas.length > 0 ? (
+                      <>
+                        <div className="resumen-stats">
+                          <div className="stat-item">
+                            <span className="stat-label">Total Ventas:</span>
+                            <span className="stat-value">{reportesData.ventasDelDia.resumen.total_ventas}</span>
+                          </div>
+                          <div className="stat-item">
+                            <span className="stat-label">Recaudado:</span>
+                            <span className="stat-value">{formatCurrency(reportesData.ventasDelDia.resumen.total_recaudado)}</span>
+                          </div>
+                          <div className="stat-item">
+                            <span className="stat-label">Boletos:</span>
+                            <span className="stat-value">{reportesData.ventasDelDia.resumen.total_boletos}</span>
+                          </div>
+                        </div>
+                        <div className="table-container">
+                          <table className="admin-table">
+                            <thead>
+                              <tr>
+                                <th>ID Venta</th>
+                                <th>Cliente</th>
+                                <th>Evento</th>
+                                <th>Boletos</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reportesData.ventasDelDia.ventas.map((venta: any) => (
+                                <tr key={venta.id_venta}>
+                                  <td>#{venta.id_venta}</td>
+                                  <td>{venta.cliente}</td>
+                                  <td>{venta.evento || 'N/A'}</td>
+                                  <td>{venta.cantidad_boletos}</td>
+                                  <td>{formatCurrency(venta.total)}</td>
+                                  <td>{formatDate(venta.fecha)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="empty-message">No hay ventas registradas hoy</p>
+                    )}
+                  </div>
+
+                  {/* Funciones Más Vendidas */}
+                  <div className="reporte-section">
+                    <h2>🎭 Funciones Más Vendidas</h2>
+                    {reportesData.funcionesMasVendidas.length > 0 ? (
+                      <div className="table-container">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Evento</th>
+                              <th>Fecha</th>
+                              <th>Hora</th>
+                              <th>Auditorio</th>
+                              <th>Sede</th>
+                              <th>Boletos Vendidos</th>
+                              <th>Ocupación</th>
+                              <th>Recaudación</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportesData.funcionesMasVendidas.map((funcion: any) => (
+                              <tr key={funcion.id_funcion}>
+                                <td><strong>{funcion.nombre_evento}</strong></td>
+                                <td>{new Date(funcion.fecha).toLocaleDateString('es-MX')}</td>
+                                <td>{funcion.hora}</td>
+                                <td>{funcion.auditorio}</td>
+                                <td>{funcion.nombre_sede}</td>
+                                <td>{funcion.boletos_vendidos} / {funcion.capacidad}</td>
+                                <td>
+                                  <span className={`badge ${funcion.porcentaje_ocupacion > 80 ? 'active' : funcion.porcentaje_ocupacion > 50 ? 'seatsio-configured' : 'inactive'}`}>
+                                    {funcion.porcentaje_ocupacion}%
+                                  </span>
+                                </td>
+                                <td>{formatCurrency(funcion.recaudacion)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="empty-message">No hay datos de funciones en el periodo seleccionado</p>
+                    )}
+                  </div>
+
+                  {/* Clientes Top */}
+                  <div className="reporte-section">
+                    <h2>🏆 Clientes que Más Compran</h2>
+                    {reportesData.clientesTop.length > 0 ? (
+                      <div className="table-container">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Posición</th>
+                              <th>Cliente</th>
+                              <th>Email</th>
+                              <th>Total Compras</th>
+                              <th>Boletos Comprados</th>
+                              <th>Total Gastado</th>
+                              <th>Última Compra</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportesData.clientesTop.map((cliente: any, index: number) => (
+                              <tr key={cliente.id_cliente}>
+                                <td>
+                                  <span className={`badge ${index === 0 ? 'active' : index < 3 ? 'seatsio-configured' : ''}`}>
+                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                                  </span>
+                                </td>
+                                <td><strong>{cliente.nombre_completo}</strong></td>
+                                <td>{cliente.email}</td>
+                                <td>{cliente.total_compras}</td>
+                                <td>{cliente.total_boletos}</td>
+                                <td>{formatCurrency(cliente.total_gastado)}</td>
+                                <td>{new Date(cliente.ultima_compra).toLocaleDateString('es-MX')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="empty-message">No hay datos de clientes</p>
+                    )}
+                  </div>
+
+                  {/* Horarios con Más Ventas */}
+                  <div className="reporte-section">
+                    <h2>⏰ Horarios con Más Ventas</h2>
+                    {reportesData.horariosVentas.length > 0 ? (
+                      <div className="table-container">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Horario</th>
+                              <th>Funciones</th>
+                              <th>Boletos Vendidos</th>
+                              <th>Promedio por Función</th>
+                              <th>Recaudación</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportesData.horariosVentas.map((horario: any) => (
+                              <tr key={horario.hora}>
+                                <td><strong>{horario.hora}:00 hrs</strong></td>
+                                <td>{horario.total_funciones}</td>
+                                <td>{horario.total_boletos_vendidos}</td>
+                                <td>{horario.promedio_boletos_por_funcion}</td>
+                                <td>{formatCurrency(horario.total_recaudacion)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="empty-message">No hay datos de horarios</p>
+                    )}
+                  </div>
+
+                  {/* Eventos Más Vendidos */}
+                  <div className="reporte-section">
+                    <h2>🎉 Eventos Más Vendidos</h2>
+                    {reportesData.eventosMasVendidos.length > 0 ? (
+                      <div className="eventos-vendidos-grid">
+                        {reportesData.eventosMasVendidos.map((evento: any, index: number) => (
+                          <div key={evento.id_evento} className="evento-vendido-card">
+                            <div className="ranking-badge">
+                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                            </div>
+                            <img src={evento.imagen_url} alt={evento.nombre_evento} />
+                            <div className="evento-vendido-info">
+                              <h3>{evento.nombre_evento}</h3>
+                              <p className="tipo-evento">{evento.tipo_evento}</p>
+                              <div className="stats-grid-mini">
+                                <div className="stat-mini">
+                                  <span className="label">Funciones:</span>
+                                  <span className="value">{evento.total_funciones}</span>
+                                </div>
+                                <div className="stat-mini">
+                                  <span className="label">Boletos:</span>
+                                  <span className="value">{evento.total_boletos_vendidos}</span>
+                                </div>
+                                <div className="stat-mini">
+                                  <span className="label">Recaudación:</span>
+                                  <span className="value">{formatCurrency(evento.total_recaudacion)}</span>
+                                </div>
+                                <div className="stat-mini">
+                                  <span className="label">Promedio:</span>
+                                  <span className="value">{Math.round(evento.promedio_boletos_por_funcion)} bol/func</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-message">No hay datos de eventos en el periodo seleccionado</p>
+                    )}
+                  </div>
+
+                  {/* Métodos de Pago */}
+                  <div className="reporte-section">
+                    <h2>💳 Métodos de Pago</h2>
+                    {reportesData.estadisticasGenerales.metodosPago.length > 0 ? (
+                      <div className="metodos-pago-grid">
+                        {reportesData.estadisticasGenerales.metodosPago.map((metodo: any) => (
+                          <div key={metodo.nombre_metodo} className="metodo-pago-card">
+                            <h3>{metodo.nombre_metodo}</h3>
+                            <p className="metodo-total">{formatCurrency(metodo.monto_total)}</p>
+                            <p className="metodo-usos">{metodo.total_usos} transacciones</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-message">No hay datos de métodos de pago</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="empty-state">
+                  <BarChart3 className="empty-icon" />
+                  <h3>Reportes</h3>
+                  <p>Selecciona un rango de fechas y haz clic en "Actualizar Reportes"</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1147,24 +1459,6 @@ export default function AdminPanel() {
                     <li>Los eventos se nombran automáticamente basándose en el evento y función</li>
                   </ul>
                 </div>
-              </div>
-
-              {/* Información */}
-              <div className="seatsio-help-card">
-                <h3>ℹ️ Información</h3>
-                <p>
-                  <strong>Integración Automática:</strong> Con esta configuración, ya no necesitas copiar/pegar Event Keys manualmente.
-                  Todo se gestiona automáticamente.
-                </p>
-                <ul>
-                  <li>✅ Los eventos se crean automáticamente en Seats.io</li>
-                  <li>✅ Las funciones se vinculan automáticamente</li>
-                  <li>✅ Los asientos se sincronizan en tiempo real</li>
-                  <li>✅ No requiere configuración manual</li>
-                </ul>
-                <p>
-                  <strong>Documentación:</strong> <a href="https://docs.seats.io" target="_blank" rel="noopener noreferrer">docs.seats.io</a>
-                </p>
               </div>
             </div>
           )}
