@@ -303,10 +303,6 @@ export default function Topbar({ selectedLocation: propSelectedLocation, onLocat
                         <Ticket className="icon" />
                         <span>Mis Boletos</span>
                       </button>
-                      <button className="menu-item" onClick={handleOrdersClick}>
-                        <Package className="icon" />
-                        <span>Mis Pedidos</span>
-                      </button>
                       <button className="menu-item" onClick={handleSettingsClick}>
                         <Settings className="icon" />
                         <span>Configuración</span>

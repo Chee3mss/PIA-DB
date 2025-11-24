@@ -258,17 +258,6 @@ export default function Profile() {
                     placeholder="Tu nombre completo"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label>Correo Electrónico *</label>
-                  <input
-                    type="email"
-                    value={editData.email || ''}
-                    onChange={(e) => setEditData({...editData, email: e.target.value})}
-                    placeholder="Tu correo"
-                  />
-                </div>
-
                 <div className="form-group">
                   <label>Teléfono</label>
                   <input
