@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Topbar from './TopBar';
 import { SeatsioSeatingChart } from '@seatsio/seatsio-react';
-import { eventosService } from '../services/api';
+import { eventosService, authService } from '../services/api';
 import '../styles/SeatSelection.css';
 
 interface SeatsioConfig {
@@ -43,8 +43,22 @@ export default function SeatSelection() {
   // Workspace key global por defecto (puedes ponerlo en variables de entorno)
   const DEFAULT_WORKSPACE_KEY = 'f746befc-30bd-4c29-aa82-e6a52e274ba4';
 
+  // Verificar autenticación antes de cargar datos
   useEffect(() => {
-    loadData();
+    if (!authService.isAuthenticated()) {
+      // Redirigir a la página del evento si no está autenticado y abrir modal de login
+      navigate(`/event/${eventId}`, { 
+        replace: true,
+        state: { openAuthModal: true }
+      });
+    }
+  }, [eventId, navigate]);
+
+  useEffect(() => {
+    // Solo cargar datos si está autenticado
+    if (authService.isAuthenticated()) {
+      loadData();
+    }
   }, [eventId, functionId]);
 
   const loadData = async () => {

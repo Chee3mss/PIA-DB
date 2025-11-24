@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Topbar from './TopBar';
-import { eventosService, type EventoDetalle, type Funcion } from '../services/api';
+import AuthModal from './AuthModal';
+import { eventosService, authService, type EventoDetalle, type Funcion } from '../services/api';
 import '../styles/EventDetail.css';
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [evento, setEvento] = useState<EventoDetalle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [selectedFunctionId, setSelectedFunctionId] = useState<number | null>(null);
 
   // Cargar datos del evento desde el backend
   useEffect(() => {
@@ -32,6 +36,33 @@ export default function EventDetail() {
 
     loadEvento();
   }, [eventId]);
+
+  // Abrir modal de autenticación si se redirigió desde SeatSelection
+  useEffect(() => {
+    if (location.state?.openAuthModal) {
+      setIsAuthModalOpen(true);
+      // Limpiar el estado para evitar que se abra de nuevo al navegar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  // Manejar selección de función con verificación de autenticación
+  const handleFunctionClick = (functionId: number) => {
+    if (!authService.isAuthenticated()) {
+      setSelectedFunctionId(functionId);
+      setIsAuthModalOpen(true);
+    } else {
+      navigate(`/event/${eventId}/seats/${functionId}`);
+    }
+  };
+
+  // Manejar login exitoso
+  const handleLoginSuccess = (user: any) => {
+    setIsAuthModalOpen(false);
+    if (selectedFunctionId) {
+      navigate(`/event/${eventId}/seats/${selectedFunctionId}`);
+    }
+  };
 
   // Estado de carga
   if (loading) {
@@ -176,7 +207,7 @@ export default function EventDetail() {
                                         <div 
                                             key={func.id_funcion} 
                                             className={`function-item ${!isAvailable ? 'disabled' : ''}`}
-                                            onClick={() => isAvailable && navigate(`/event/${eventId}/seats/${func.id_funcion}`)}
+                                            onClick={() => isAvailable && handleFunctionClick(func.id_funcion)}
                                         >
                                             <div className="function-info">
                                                 <span className="function-date">
@@ -217,6 +248,13 @@ export default function EventDetail() {
       <footer>
         <p>© 2025 StageGo. All rights reserved.</p>
       </footer>
+      
+      {/* Modal de Autenticación */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </>
   );
 }
