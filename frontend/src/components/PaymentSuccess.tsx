@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Topbar from './TopBar';
+import { authService } from '../services/api';
 import '../styles/PaymentSuccess.css';
 
 export default function PaymentSuccess() {
@@ -39,13 +40,17 @@ export default function PaymentSuccess() {
 
   const confirmPaymentWithBackend = async (paymentIntentId: string, purchaseData: any) => {
       try {
+          // Get customer ID from current user or fallback to 3 (demo user)
+          const currentUser = authService.getCurrentUser();
+          const customerId = currentUser?.id_cliente || currentUser?.id || 3;
+
           const response = await fetch('http://localhost:3001/api/payments/confirm-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   paymentIntentId,
                   items: purchaseData.selectedSeats,
-                  customerId: 3, // Hardcoded for demo, should come from auth context
+                  customerId: customerId,
                   functionId: purchaseData.functionId
               })
           });
