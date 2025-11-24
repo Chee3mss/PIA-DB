@@ -16,6 +16,7 @@ import {
   Settings
 } from 'lucide-react';
 import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData } from '../services/api';
+import { useToast } from './ToastProvider';
 import '../styles/AdminPanel.css';
 
 type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio';
@@ -52,6 +53,7 @@ interface Cliente {
 
 export default function AdminPanel() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [currentSection, setCurrentSection] = useState<Section>('dashboard');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -365,6 +367,7 @@ export default function AdminPanel() {
 
   const handleLogout = () => {
     authService.logout();
+    alert(' Sesión cerrada correctamente');
     navigate('/');
   };
 

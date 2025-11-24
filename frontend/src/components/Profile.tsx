@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Package, Ticket, CreditCard, ChevronLeft, Clock, MapPinIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { authService, clientesService } from '../services/api';
+import { useToast } from './ToastProvider';
 import Topbar from './TopBar';
 import '../styles/Profile.css';
 
@@ -48,6 +49,7 @@ interface Compra {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [clienteInfo, setClienteInfo] = useState<ClienteInfo | null>(null);
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +147,7 @@ export default function Profile() {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button onClick={() => {
                 authService.logout();
+                showToast('✅ Sesión cerrada correctamente', 'success');
                 navigate('/');
               }} className="back-button">
                 Cerrar Sesión
