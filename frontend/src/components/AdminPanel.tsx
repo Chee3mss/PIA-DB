@@ -16,7 +16,8 @@ import {
   Settings,
   CreditCard
 } from 'lucide-react';
-import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData } from '../services/api';
+import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, tipoBoletosService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData } from '../services/api';
+import { useToast } from './ToastProvider';
 import '../styles/AdminPanel.css';
 
 type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio' | 'precios';

@@ -408,6 +408,12 @@ export const clientesService = {
     return response.data.data!;
   },
 
+  // Actualizar perfil del cliente
+  updatePerfil: async (id: number, datos: {nombre_completo?: string; email?: string; telefono?: string}): Promise<Cliente> => {
+    const response = await api.put<ApiResponse<Cliente>>(`/clientes/${id}/perfil`, datos);
+    return response.data.data!;
+  },
+
   // Obtener compras del cliente
   getCompras: async (id: number): Promise<any[]> => {
     const response = await api.get<ApiResponse<any[]>>(`/clientes/${id}/compras`);
