@@ -146,16 +146,18 @@
 
 .input-icon {
   position: absolute;
-  left: 0.875rem;
-  width: 16px;
-  height: 16px;
+  left: 0.75rem;
+  width: 18px;
+  height: 18px;
   color: rgba(255, 255, 255, 0.5);
   pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .input-wrapper input {
   width: 100%;
-  padding: 0.7rem 0.875rem 0.7rem 2.5rem;
+  padding: 0.75rem 0.875rem 0.75rem 2.75rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
@@ -228,7 +230,9 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 0.25rem;
+  margin: 0.25rem auto 0 auto;
+  display: block;
+  text-align: center;
 }
 
 .btn-submit:hover:not(:disabled) {

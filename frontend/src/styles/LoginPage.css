@@ -56,14 +56,17 @@
 }
 
 .btn {
-    width: 680px;
-    max-width: 92vw;
+    width: 100%;
+    max-width: 680px;
     padding: 14px 18px;
     border-radius: 12px;
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
     transition: transform 0.05s ease, background-color 0.2s ease, border-color 0.2s ease;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
 }
 
 .btn:active { transform: translateY(1px); }
