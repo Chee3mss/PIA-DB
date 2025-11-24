@@ -1252,3 +1252,73 @@
   margin-top: 1rem;
 }
 
+/* ============================================
+   SECCIÓN DE PRECIOS
+   ============================================ */
+
+.precios-section {
+  width: 100%;
+}
+
+.precio-cell {
+  font-size: 1.1rem;
+  color: #4CAF50;
+}
+
+.precio-cell strong {
+  color: #FFD700;
+}
+
+.modal-info .current-price {
+  font-size: 1.2rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.modal-info .current-price strong {
+  color: #FFD700;
+  font-size: 1.5rem;
+}
+
+/* Estilos para input de precio */
+input[type="number"][name="precio_base"] {
+  text-align: center;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
+  color: #FFD700 !important;
+  padding: 1rem !important;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Mejoras para la tabla de precios */
+.precios-section .admin-table tbody tr:hover {
+  background: rgba(255, 215, 0, 0.05);
+  transform: scale(1.01);
+  transition: all 0.2s ease;
+}
+
+.precios-section .admin-table td {
+  vertical-align: middle;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .precios-section .admin-table {
+    font-size: 0.9rem;
+  }
+  
+  .precio-cell {
+    font-size: 1rem;
+  }
+}
+

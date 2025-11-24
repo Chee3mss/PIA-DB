@@ -173,6 +173,17 @@ export default function Profile() {
             <h1>Mi Perfil</h1>
           </div>
 
+          {/* Botón para ir a Mis Boletos */}
+          <div className="profile-quick-actions">
+            <button onClick={() => navigate('/boletos')} className="quick-action-btn boletos-btn">
+              <Ticket className="icon" />
+              <div className="action-text">
+                <span className="action-title">Mis Boletos</span>
+                <span className="action-desc">Ver todos mis boletos</span>
+              </div>
+            </button>
+          </div>
+
           {/* Información del Usuario */}
           <div className="profile-section">
             <div className="section-header">
@@ -244,159 +255,6 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Historial de Compras */}
-          <div className="profile-section">
-            <div className="section-header">
-              <Package className="section-icon" />
-              <h2>Mis Compras</h2>
-            </div>
-
-            {compras.length === 0 ? (
-              <div className="empty-state">
-                <Ticket className="empty-icon" />
-                <p>Aún no has realizado ninguna compra</p>
-                <button onClick={() => navigate('/')} className="cta-button">
-                  Explorar Eventos
-                </button>
-              </div>
-            ) : (
-              <div className="compras-list">
-                {compras.map((compra) => (
-                  <div key={compra.id_venta} className="compra-card">
-                    <div className="compra-header">
-                      <div className="compra-id">
-                        <Package className="icon" />
-                        <span>Orden #{compra.id_venta}</span>
-                      </div>
-                      <span className="compra-date">
-                        {formatDate(compra.fecha)}
-                      </span>
-                    </div>
-
-                    <div className="compra-details">
-                      <div className="compra-detail-item">
-                        <Ticket className="icon" />
-                        <span>{compra.cantidad_boletos} boleto{compra.cantidad_boletos !== 1 ? 's' : ''}</span>
-                      </div>
-
-                      <div className="compra-detail-item">
-                        <CreditCard className="icon" />
-                        <span>{compra.nombre_metodo}</span>
-                      </div>
-                    </div>
-
-                    {/* Resumen de boletos (siempre visible) */}
-                    {compra.boletos && compra.boletos.length > 0 && (
-                      <div className="boletos-summary">
-                        <div className="evento-info-compact">
-                          <h4>{compra.boletos[0].nombre_evento}</h4>
-                          <div className="evento-meta-compact">
-                            <span className="meta-compact">
-                              <Clock className="icon-small" />
-                              {(() => {
-                                const fecha = new Date(compra.boletos[0].fecha_funcion);
-                                const [horas, minutos] = compra.boletos[0].hora_funcion.split(':');
-                                fecha.setHours(parseInt(horas), parseInt(minutos));
-                                return fecha.toLocaleDateString('es-MX', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                });
-                              })()}
-                            </span>
-                            <span className="meta-compact">
-                              <MapPinIcon className="icon-small" />
-                              {compra.boletos[0].ciudad}
-                            </span>
-                          </div>
-                          <div className="asientos-summary">
-                            <strong>Asientos:</strong> {compra.boletos.map(b => b.asiento).join(', ')}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Detalles completos de los boletos (expandible) */}
-                    {expandedCompras.has(compra.id_venta) && compra.boletos && compra.boletos.length > 0 && (
-                      <div className="boletos-details">
-                        {compra.boletos.map((boleto, index) => (
-                          <div key={boleto.id_boleto} className="boleto-item">
-                            {index === 0 && (
-                              <div className="evento-info">
-                                <h3>{boleto.nombre_evento}</h3>
-                                <div className="evento-meta">
-                                  <div className="meta-item">
-                                    <Clock className="icon" />
-                                    <span>
-                                      {(() => {
-                                        // Combinar fecha y hora
-                                        const fecha = new Date(boleto.fecha_funcion);
-                                        const [horas, minutos] = boleto.hora_funcion.split(':');
-                                        fecha.setHours(parseInt(horas), parseInt(minutos));
-                                        
-                                        return fecha.toLocaleString('es-MX', {
-                                          year: 'numeric',
-                                          month: 'long',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        });
-                                      })()}
-                                    </span>
-                                  </div>
-                                  <div className="meta-item">
-                                    <MapPinIcon className="icon" />
-                                    <span>{boleto.nombre_lugar} - {boleto.nombre_auditorio}, {boleto.ciudad}, {boleto.estado_lugar}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="boleto-details-row">
-                              <div className="boleto-info">
-                                <Ticket className="icon" />
-                                <div>
-                                  <strong>Asiento: {boleto.asiento}</strong>
-                                  <span className="boleto-tipo">{boleto.tipo_boleto}</span>
-                                </div>
-                              </div>
-                              <div className="boleto-precio">
-                                {formatCurrency(boleto.precio_final)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="compra-footer">
-                      <button 
-                        className="ver-detalles-btn"
-                        onClick={() => toggleCompraExpanded(compra.id_venta)}
-                      >
-                        {expandedCompras.has(compra.id_venta) ? (
-                          <>
-                            <ChevronUp className="icon" />
-                            Ocultar detalles
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="icon" />
-                            Ver más detalles
-                          </>
-                        )}
-                      </button>
-                      <div className="compra-total">
-                        <span>Total:</span>
-                        <strong>{formatCurrency(compra.total || compra.monto_total)}</strong>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Estadísticas */}

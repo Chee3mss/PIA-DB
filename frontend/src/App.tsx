@@ -10,6 +10,7 @@ import ReviewOrder from './components/ReviewOrder';
 import PaymentSuccess from './components/PaymentSuccess';
 import Profile from './components/Profile';
 import AdminPanel from './components/AdminPanel';
+import Boletos from './components/Boletos';
 
 // Componente para hacer scroll al inicio cuando cambia la ruta
 function ScrollToTop() {
@@ -35,6 +36,7 @@ function App() {
         <Route path="/success" element={<PaymentSuccess />} />
         <Route path="/eventest" element={<EventTest />} />
         <Route path="/perfil" element={<Profile />} />
+        <Route path="/boletos" element={<Boletos />} />
         <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </Router>

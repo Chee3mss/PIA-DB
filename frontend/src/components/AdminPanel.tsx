@@ -13,12 +13,13 @@ import {
   Eye,
   Search,
   Building2,
-  Settings
+  Settings,
+  CreditCard
 } from 'lucide-react';
-import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData } from '../services/api';
+import { authService, adminService, clientesService, ventasService, boletosService, auditoriosService, funcionesService, tipoBoletosService, type Auditorio, type Sede, type FuncionDetalle, type CrearFuncionData, type TipoBoletoDeta } from '../services/api';
 import '../styles/AdminPanel.css';
 
-type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio';
+type Section = 'dashboard' | 'eventos' | 'compras' | 'boletos' | 'clientes' | 'auditorios' | 'seatsio' | 'precios';
 
 interface Evento {
   id_evento: number;
@@ -62,6 +63,7 @@ export default function AdminPanel() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [auditorios, setAuditorios] = useState<Auditorio[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
+  const [tipoBoletos, setTipoBoletos] = useState<TipoBoletoDeta[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Estados para modales de edición
@@ -78,6 +80,13 @@ export default function AdminPanel() {
   const [isEventoModalOpen, setIsEventoModalOpen] = useState(false);
   const [eventFunctions, setEventFunctions] = useState<FuncionDetalle[]>([]);
   const [tiposEvento, setTiposEvento] = useState<any[]>([]);
+  
+  // Estados para creación de eventos
+  const [isCreateEventoModalOpen, setIsCreateEventoModalOpen] = useState(false);
+  
+  // Estados para precios
+  const [editingPrecio, setEditingPrecio] = useState<TipoBoletoDeta | null>(null);
+  const [isPrecioModalOpen, setIsPrecioModalOpen] = useState(false);
   
   // Estado para modo de entrada de Seats.io en modal de auditorio
   const [seatsioInputMode, setSeatsioInputMode] = useState<'select' | 'manual'>('select');
@@ -116,6 +125,9 @@ export default function AdminPanel() {
         break;
       case 'seatsio':
         loadSeatsioData();
+        break;
+      case 'precios':
+        if (tipoBoletos.length === 0) loadTipoBoletos();
         break;
     }
   }, [currentSection]);
@@ -163,6 +175,15 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('Error cargando auditorios:', error);
+    }
+  };
+
+  const loadTipoBoletos = async () => {
+    try {
+      const tipoBoletosDeta = await tipoBoletosService.getAllTipoBoletos();
+      setTipoBoletos(tipoBoletosDeta);
+    } catch (error) {
+      console.error('Error cargando tipos de boleto:', error);
     }
   };
 
@@ -243,6 +264,81 @@ export default function AdminPanel() {
       setEventos(eventosData);
     } catch (error: any) {
       alert(`❌ Error al eliminar evento: ${error.message}`);
+    }
+  };
+
+  const handleOpenCreateEvento = async () => {
+    try {
+      // Cargar tipos de evento si no están cargados
+      if (tiposEvento.length === 0) {
+        const tipos = await fetch('http://localhost:3001/api/eventos/categorias');
+        const tiposData = await tipos.json();
+        setTiposEvento(tiposData);
+      }
+      
+      setIsCreateEventoModalOpen(true);
+    } catch (error) {
+      console.error('Error cargando tipos de evento:', error);
+      alert('Error al abrir el formulario de creación');
+    }
+  };
+
+  const handleCreateEvento = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const eventoData = {
+        nombre_evento: formData.get('nombre_evento'),
+        descripcion: formData.get('descripcion'),
+        imagen_url: formData.get('imagen_url'),
+        clasificacion: formData.get('clasificacion'),
+        fecha_inicio: formData.get('fecha_inicio'),
+        fecha_fin: formData.get('fecha_fin'),
+        id_tipo_evento: parseInt(formData.get('id_tipo_evento') as string)
+      };
+
+      await adminService.crearEvento(eventoData);
+      alert('✅ Evento creado correctamente');
+      
+      // Recargar eventos
+      const eventosData = await adminService.getAllEventos();
+      setEventos(eventosData);
+      
+      setIsCreateEventoModalOpen(false);
+    } catch (error: any) {
+      alert(`❌ Error al crear evento: ${error.message}`);
+    }
+  };
+
+  const handleEditPrecio = (tipoBoleto: TipoBoletoDeta) => {
+    setEditingPrecio(tipoBoleto);
+    setIsPrecioModalOpen(true);
+  };
+
+  const handleSavePrecio = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPrecio) return;
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const nuevoPrecio = parseFloat(formData.get('precio_base') as string);
+
+      if (isNaN(nuevoPrecio) || nuevoPrecio < 0) {
+        alert('❌ Por favor ingresa un precio válido');
+        return;
+      }
+
+      await tipoBoletosService.updatePrecio(editingPrecio.id_tipo_boleto, nuevoPrecio);
+      alert('✅ Precio actualizado correctamente');
+      
+      // Recargar tipos de boleto
+      await loadTipoBoletos();
+      
+      setIsPrecioModalOpen(false);
+      setEditingPrecio(null);
+    } catch (error: any) {
+      alert(`❌ Error al actualizar precio: ${error.message}`);
     }
   };
 
@@ -472,6 +568,14 @@ export default function AdminPanel() {
               <Settings className="icon" />
               <span>Seats.io Config</span>
             </button>
+
+            <button
+              className={`nav-item ${currentSection === 'precios' ? 'active' : ''}`}
+              onClick={() => handleSectionChange('precios')}
+            >
+              <CreditCard className="icon" />
+              <span>Precios</span>
+            </button>
           </nav>
 
           <button className="logout-btn" onClick={handleLogout}>
@@ -552,7 +656,7 @@ export default function AdminPanel() {
             <div className="eventos-section">
               <div className="section-header">
                 <h1 className="section-title">Gestión de Eventos</h1>
-                <button className="btn-primary">
+                <button className="btn-primary" onClick={handleOpenCreateEvento}>
                   <Plus className="icon" />
                   Nuevo Evento
                 </button>
@@ -857,6 +961,98 @@ export default function AdminPanel() {
                   <li>Copia el Event Key del evento</li>
                   <li>Haz clic en "Editar" en el auditorio que desees configurar</li>
                   <li>Pega el Event Key en el campo correspondiente</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Precios */}
+          {currentSection === 'precios' && (
+            <div className="precios-section">
+              <div className="section-header">
+                <h1 className="section-title">Gestión de Precios</h1>
+                <p className="section-subtitle">Administra los precios de cada tipo de boleto por auditorio</p>
+              </div>
+              
+              <div className="admin-search-bar">
+                <Search className="icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, auditorio o sede..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Zona</th>
+                      <th>Auditorio</th>
+                      <th>Sede</th>
+                      <th>Precio Base</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tipoBoletos.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="empty-message">
+                          No hay tipos de boleto registrados
+                        </td>
+                      </tr>
+                    ) : (
+                      tipoBoletos
+                        .filter(tb => 
+                          searchTerm === '' || 
+                          tb.nombre_tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          tb.nombre_zona?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          tb.auditorio_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          tb.nombre_sede?.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .map(tipoBoleto => (
+                        <tr key={tipoBoleto.id_tipo_boleto}>
+                          <td>#{tipoBoleto.id_tipo_boleto}</td>
+                          <td><strong>{tipoBoleto.nombre_tipo}</strong></td>
+                          <td>{tipoBoleto.nombre_zona || 'N/A'}</td>
+                          <td>{tipoBoleto.auditorio_nombre || 'N/A'}</td>
+                          <td>{tipoBoleto.nombre_sede || 'N/A'}</td>
+                          <td className="precio-cell">
+                            <strong>${tipoBoleto.precio_base.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong>
+                          </td>
+                          <td>
+                            <span className={`badge ${tipoBoleto.activo ? 'active' : 'inactive'}`}>
+                              {tipoBoleto.activo ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
+                          <td>
+                            <button 
+                              className="btn-action edit"
+                              onClick={() => handleEditPrecio(tipoBoleto)}
+                              title="Editar precio"
+                            >
+                              <Edit className="icon" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Información */}
+              <div className="seatsio-info-card" style={{ marginTop: '2rem' }}>
+                <h3>💰 Información sobre Precios</h3>
+                <ul>
+                  <li>Los precios se aplican por tipo de boleto y zona del auditorio</li>
+                  <li>Cada auditorio puede tener diferentes zonas (VIP, General, etc.)</li>
+                  <li>Los cambios de precio se aplican inmediatamente a nuevas compras</li>
+                  <li>Las ventas ya realizadas mantienen el precio al momento de la compra</li>
                 </ul>
               </div>
             </div>
@@ -1171,6 +1367,161 @@ export default function AdminPanel() {
                       </button>
                     </form>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de edición de precio */}
+          {isPrecioModalOpen && editingPrecio && (
+            <div className="modal-overlay" onClick={() => setIsPrecioModalOpen(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>💰 Editar Precio</h2>
+                  <button className="modal-close" onClick={() => setIsPrecioModalOpen(false)}>×</button>
+                </div>
+                
+                <div className="modal-body">
+                  <div className="modal-info">
+                    <h3>{editingPrecio.nombre_tipo}</h3>
+                    <p><strong>Zona:</strong> {editingPrecio.nombre_zona}</p>
+                    <p><strong>Auditorio:</strong> {editingPrecio.auditorio_nombre}</p>
+                    <p><strong>Sede:</strong> {editingPrecio.nombre_sede}</p>
+                    <p className="current-price">Precio actual: <strong>${editingPrecio.precio_base.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</strong></p>
+                  </div>
+
+                  <form onSubmit={handleSavePrecio}>
+                    <div className="form-group">
+                      <label htmlFor="precio_base">Nuevo Precio Base (MXN) *</label>
+                      <input
+                        type="number"
+                        id="precio_base"
+                        name="precio_base"
+                        defaultValue={editingPrecio.precio_base}
+                        step="0.01"
+                        min="0"
+                        required
+                        placeholder="0.00"
+                        style={{ fontSize: '1.2rem', fontWeight: '600' }}
+                      />
+                      <span className="field-hint">Ingresa el precio en pesos mexicanos</span>
+                    </div>
+
+                    <div className="modal-actions">
+                      <button type="button" className="btn-cancel" onClick={() => setIsPrecioModalOpen(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-save">
+                        💾 Guardar Precio
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de creación de evento */}
+          {isCreateEventoModalOpen && (
+            <div className="modal-overlay" onClick={() => setIsCreateEventoModalOpen(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>➕ Crear Nuevo Evento</h2>
+                  <button className="modal-close" onClick={() => setIsCreateEventoModalOpen(false)}>×</button>
+                </div>
+                
+                <div className="modal-body">
+                  <form onSubmit={handleCreateEvento}>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="nombre_evento_new">Nombre del Evento *</label>
+                        <input
+                          type="text"
+                          id="nombre_evento_new"
+                          name="nombre_evento"
+                          required
+                          placeholder="Ej: Concierto de Rock"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="id_tipo_evento_new">Categoría *</label>
+                        <select
+                          id="id_tipo_evento_new"
+                          name="id_tipo_evento"
+                          required
+                        >
+                          <option value="">Seleccionar categoría...</option>
+                          {tiposEvento.map((tipo: any) => (
+                            <option key={tipo.id_tipo_evento} value={tipo.id_tipo_evento}>
+                              {tipo.nombre_tipo}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="descripcion_new">Descripción</label>
+                      <textarea
+                        id="descripcion_new"
+                        name="descripcion"
+                        rows={3}
+                        placeholder="Describe el evento..."
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="imagen_url_new">URL de Imagen</label>
+                      <input
+                        type="url"
+                        id="imagen_url_new"
+                        name="imagen_url"
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="clasificacion_new">Clasificación</label>
+                        <select id="clasificacion_new" name="clasificacion" defaultValue="Todo Público">
+                          <option value="Todo Público">Todo Público</option>
+                          <option value="Mayor 12">Mayor 12</option>
+                          <option value="Mayor 15">Mayor 15</option>
+                          <option value="Mayor 18">Mayor 18</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="fecha_inicio_new">Fecha Inicio *</label>
+                        <input
+                          type="datetime-local"
+                          id="fecha_inicio_new"
+                          name="fecha_inicio"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="fecha_fin_new">Fecha Fin *</label>
+                        <input
+                          type="datetime-local"
+                          id="fecha_fin_new"
+                          name="fecha_fin"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="modal-actions">
+                      <button type="button" className="btn-cancel" onClick={() => setIsCreateEventoModalOpen(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-save">
+                        💾 Crear Evento
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>

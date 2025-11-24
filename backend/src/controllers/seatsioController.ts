@@ -299,6 +299,7 @@ export const getEventKeyForFunction = async (req: Request, res: Response) => {
         e.nombre_evento,
         f.fecha,
         f.hora,
+        a.id_auditorio,
         a.nombre as auditorio_nombre,
         s.nombre_sede
        FROM Funciones f
@@ -325,11 +326,32 @@ export const getEventKeyForFunction = async (req: Request, res: Response) => {
       });
     }
 
+    // Obtener precios de los tipos de boleto del auditorio
+    const [precios] = await pool.execute<RowDataPacket[]>(
+      `SELECT 
+        tb.nombre_tipo as category,
+        tb.precio_base as price
+       FROM Tipo_Boleto tb
+       JOIN Zonas z ON tb.id_zona = z.id_zona
+       WHERE z.id_auditorio = ? AND tb.activo = 1
+       ORDER BY tb.precio_base DESC`,
+      [funcion.id_auditorio]
+    );
+
+    // Formatear precios para Seats.io
+    const pricing = precios.map((p: any) => ({
+      category: p.category,
+      price: parseFloat(p.price)
+    }));
+
     res.json({
       seatsio_event_key: funcion.seatsio_event_key,
       seatsio_chart_key: funcion.seatsio_chart_key,
       seatsio_public_key: seatsioService.getPublicKey(),
       seatsio_region: seatsioService.getRegion(),
+      pricing: pricing.length > 0 ? pricing : [
+        { category: 'General', price: 500 }
+      ],
       funcion: {
         id: funcion.id_funcion,
         nombre: funcion.nombre_evento,
