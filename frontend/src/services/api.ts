@@ -43,10 +43,18 @@ api.interceptors.response.use(
   (response: any) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Token expirado o inválido
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Verificar si el error viene de una ruta de autenticación (login/register)
+      const isAuthRoute = error.config?.url?.includes('/auth/login') || 
+                          error.config?.url?.includes('/auth/register') ||
+                          error.config?.url?.includes('/clientes/login') ||
+                          error.config?.url?.includes('/clientes/registro');
+      
+      // Solo redirigir si NO es una ruta de autenticación (significa token expirado)
+      if (!isAuthRoute) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }
@@ -742,6 +750,55 @@ export const funcionesService = {
   obtenerFuncionesPorEvento: async (idEvento: number): Promise<FuncionDetalle[]> => {
     const response = await api.get(`/funciones/evento/${idEvento}`);
     return response.data.data;
+  },
+};
+
+// ============================================
+// TIPOS DE BOLETO SERVICE
+// ============================================
+
+export interface TipoBoletoDeta extends TipoBoleto {
+  auditorio_nombre?: string;
+  id_auditorio?: number;
+  nombre_sede?: string;
+  zona_capacidad?: number;
+}
+
+export const tipoBoletosService = {
+  // Obtener todos los tipos de boleto
+  getAllTipoBoletos: async (): Promise<TipoBoletoDeta[]> => {
+    const response = await api.get('/tipo-boletos');
+    return response.data;
+  },
+
+  // Obtener tipos de boleto por auditorio
+  getTipoBoletosbyAuditorio: async (idAuditorio: number): Promise<TipoBoleto[]> => {
+    const response = await api.get(`/tipo-boletos/auditorio/${idAuditorio}`);
+    return response.data;
+  },
+
+  // Actualizar precio de tipo de boleto
+  updatePrecio: async (id: number, precio_base: number): Promise<ApiResponse> => {
+    const response = await api.patch(`/tipo-boletos/${id}/precio`, { precio_base });
+    return response.data;
+  },
+
+  // Actualizar tipo de boleto completo
+  updateTipoBoleto: async (id: number, data: Partial<TipoBoleto>): Promise<ApiResponse> => {
+    const response = await api.put(`/tipo-boletos/${id}`, data);
+    return response.data;
+  },
+
+  // Crear tipo de boleto
+  createTipoBoleto: async (data: Omit<TipoBoleto, 'id_tipo_boleto'>): Promise<ApiResponse> => {
+    const response = await api.post('/tipo-boletos', data);
+    return response.data;
+  },
+
+  // Desactivar tipo de boleto
+  deleteTipoBoleto: async (id: number): Promise<ApiResponse> => {
+    const response = await api.delete(`/tipo-boletos/${id}`);
+    return response.data;
   },
 };
 

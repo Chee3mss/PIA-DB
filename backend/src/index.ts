@@ -17,6 +17,7 @@ import funcionesRoutes from './routes/funciones';
 import paymentsRoutes from './routes/payments';
 import reportesRoutes from './routes/reportes';
 import testRoutes from './routes/test';
+import tipoBoletosRoutes from './routes/tipoBoletos';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -104,6 +105,7 @@ app.use('/api/funciones', funcionesRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/tipo-boletos', tipoBoletosRoutes);
 
 // Ruta 404 - No encontrado
 app.use((req: Request, res: Response) => {

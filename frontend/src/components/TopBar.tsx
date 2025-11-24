@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/small-logo.svg'
-import { Search, User, Menu, X, MapPin, LogOut, Settings, Package, ChevronDown } from 'lucide-react';
+import { Search, User, Menu, X, MapPin, LogOut, Settings, Package, ChevronDown, Ticket } from 'lucide-react';
 import { authService, eventosService, ubicacionService, type Evento, type Estado } from '../services/api';
 import AuthModal from './AuthModal';
 import { useToast } from './ToastProvider';
@@ -170,6 +170,11 @@ export default function Topbar({ selectedLocation: propSelectedLocation, onLocat
     }
   };
 
+  const handleBoletosClick = () => {
+    setIsUserDropdownOpen(false);
+    navigate('/boletos');
+  };
+
   const handleSettingsClick = () => {
     setIsUserDropdownOpen(false);
     if (currentUser?.tipo === 'empleado') {
@@ -294,6 +299,10 @@ export default function Topbar({ selectedLocation: propSelectedLocation, onLocat
                         <User className="icon" />
                         <span>Mi Perfil</span>
                       </button>
+                      <button className="menu-item" onClick={handleBoletosClick}>
+                        <Ticket className="icon" />
+                        <span>Mis Boletos</span>
+                      </button>
                       <button className="menu-item" onClick={handleOrdersClick}>
                         <Package className="icon" />
                         <span>Mis Pedidos</span>
@@ -382,12 +391,21 @@ export default function Topbar({ selectedLocation: propSelectedLocation, onLocat
           </div>
 
           {currentUser && (
-            <div className="mobile-option" onClick={handleLogout}>
-              <div className="mobile-option-left">
-                <LogOut className="icon" />
-                <span>Cerrar Sesión</span>
+            <>
+              <div className="mobile-option" onClick={() => { navigate('/boletos'); setIsMenuOpen(false); }}>
+                <div className="mobile-option-left">
+                  <Ticket className="icon" />
+                  <span>Mis Boletos</span>
+                </div>
               </div>
-            </div>
+
+              <div className="mobile-option" onClick={handleLogout}>
+                <div className="mobile-option-left">
+                  <LogOut className="icon" />
+                  <span>Cerrar Sesión</span>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

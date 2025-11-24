@@ -8,6 +8,7 @@ import '../styles/SeatSelection.css';
 interface SeatsioConfig {
   seatsio_event_key: string;
   seatsio_public_key: string | null;
+  pricing: Array<{ category: string; price: number }>;
   auditorio: {
     id: number;
     nombre: string;
@@ -94,6 +95,7 @@ export default function SeatSelection() {
       setSeatsioConfig({
         seatsio_event_key: data.seatsio_event_key,
         seatsio_public_key: data.seatsio_public_key,
+        pricing: data.pricing || [{ category: 'General', price: 500 }],
         auditorio: {
           id: data.funcion.id,
           nombre: data.funcion.auditorio,
@@ -224,13 +226,8 @@ export default function SeatSelection() {
                             onObjectSelected={handleSeatSelected}
                             onObjectDeselected={handleSeatDeselected}
                             language="es"
-                            pricing={[
-                                { category: 'VIP', price: 1500 },
-                                { category: 'Premium', price: 1000 },
-                                { category: 'Preferente', price: 800 },
-                                { category: 'General', price: 500 }
-                            ]}
-                            priceFormatter={(price: number) => `$${price.toLocaleString()}`}
+                            pricing={seatsioConfig.pricing}
+                            priceFormatter={(price: number) => `$${price.toLocaleString('es-MX')}`}
                             session="continue"
                             maxSelectedObjects={10}
                             showMinimap={false} 
