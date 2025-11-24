@@ -60,6 +60,22 @@ const registerPurchase = async (res: Response, items: any[], customerId: number,
   const connection = await pool.getConnection();
 
   try {
+    // 0. Verificar Idempotencia: Si ya existe una transacción con este ID, no volver a registrar
+    const [existingTransaction]: any = await connection.query(
+      'SELECT id_venta FROM Transacciones WHERE referencia_pago = ?',
+      [transactionId]
+    );
+
+    if (existingTransaction.length > 0) {
+      console.log(`Transacción ${transactionId} ya procesada. Retornando venta existente.`);
+      connection.release();
+      return res.json({ 
+        success: true, 
+        idVenta: existingTransaction[0].id_venta, 
+        message: "Compra ya registrada previamente" 
+      });
+    }
+
     await connection.beginTransaction();
 
     // 1. Preparar datos para el SP

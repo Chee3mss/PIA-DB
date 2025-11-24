@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Topbar from './TopBar';
 import { authService } from '../services/api';
@@ -9,8 +9,12 @@ export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-
+  const processedRef = useRef(false);
+  
   useEffect(() => {
+    // Prevent double processing in React strict mode or re-renders
+    if (processedRef.current) return;
+    
     const clientSecret = searchParams.get('payment_intent_client_secret');
     const paymentIntentId = searchParams.get('payment_intent');
     const redirectStatus = searchParams.get('redirect_status');
@@ -28,6 +32,7 @@ export default function PaymentSuccess() {
         const purchaseData = JSON.parse(purchaseDataString);
         
         // Confirm payment with backend to register in DB
+        processedRef.current = true; // Mark as processed before calling
         confirmPaymentWithBackend(paymentIntentId, purchaseData);
     } else if (redirectStatus === 'processing') {
         setStatus('success');
