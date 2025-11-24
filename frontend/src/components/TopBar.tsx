@@ -5,11 +5,13 @@ import logo from '../assets/small-logo.svg'
 import { Search, User, Menu, X, MapPin, LogOut, Settings, Package, ChevronDown, Ticket } from 'lucide-react';
 import { authService, eventosService, ubicacionService, type Evento, type Estado } from '../services/api';
 import AuthModal from './AuthModal';
+import { useToast } from './ToastProvider';
 import '../styles/TopBar.css';
 
 export default function Topbar({ selectedLocation: propSelectedLocation, onLocationChange }: { selectedLocation?: string, onLocationChange?: (location: string) => void }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
@@ -125,6 +127,7 @@ export default function Topbar({ selectedLocation: propSelectedLocation, onLocat
     authService.logout();
     setCurrentUser(null);
     setIsUserDropdownOpen(false);
+    showToast('✅ Sesión cerrada correctamente', 'success');
     navigate('/');
   };
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Calendar, Package, Ticket, CreditCard, ChevronLeft, Clock, MapPinIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Package, Ticket, CreditCard, ChevronLeft, Clock, MapPinIcon, ChevronDown, ChevronUp, Edit2, Save, X } from 'lucide-react';
 import { authService, clientesService } from '../services/api';
+import { useToast } from './ToastProvider';
 import Topbar from './TopBar';
 import '../styles/Profile.css';
 
@@ -48,11 +49,15 @@ interface Compra {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [clienteInfo, setClienteInfo] = useState<ClienteInfo | null>(null);
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCompras, setExpandedCompras] = useState<Set<number>>(new Set());
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<ClienteInfo>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -121,6 +126,47 @@ export default function Profile() {
     });
   };
 
+  const handleEditClick = () => {
+    if (clienteInfo) {
+      setEditData({
+        nombre_completo: clienteInfo.nombre_completo,
+        email: clienteInfo.email,
+        telefono: clienteInfo.telefono
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditData({});
+  };
+
+  const handleEditSave = async () => {
+    if (!clienteInfo || !editData.nombre_completo || !editData.email) {
+      showToast('Por favor completa todos los campos requeridos', 'error');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const updatedPerfil = await clientesService.updatePerfil(clienteInfo.id_cliente, {
+        nombre_completo: editData.nombre_completo,
+        email: editData.email,
+        telefono: editData.telefono
+      });
+      
+      setClienteInfo(updatedPerfil as ClienteInfo);
+      showToast('✓ Perfil actualizado correctamente', 'success');
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error('Error al actualizar perfil:', err);
+      showToast(err.response?.data?.error || 'Error al actualizar perfil', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -145,6 +191,7 @@ export default function Profile() {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button onClick={() => {
                 authService.logout();
+                showToast('✅ Sesión cerrada correctamente', 'success');
                 navigate('/');
               }} className="back-button">
                 Cerrar Sesión
@@ -189,72 +236,133 @@ export default function Profile() {
             <div className="section-header">
               <User className="section-icon" />
               <h2>Información Personal</h2>
+              {!isEditing && (
+                <button 
+                  className="edit-profile-btn"
+                  onClick={handleEditClick}
+                  title="Editar perfil"
+                >
+                  Editar
+                </button>
+              )}
             </div>
-            <div className="info-grid">
-              <div className="info-item">
-                <div className="info-icon">
-                  <User className="icon" />
-                </div>
-                <div className="info-content">
-                  <label>Nombre Completo</label>
-                  <p>{clienteInfo.nombre_completo}</p>
-                </div>
-              </div>
 
-              <div className="info-item">
-                <div className="info-icon">
-                  <Mail className="icon" />
+            {isEditing ? (
+              <div className="edit-form">
+                <div className="form-group">
+                  <label>Nombre Completo *</label>
+                  <input
+                    type="text"
+                    value={editData.nombre_completo || ''}
+                    onChange={(e) => setEditData({...editData, nombre_completo: e.target.value})}
+                    placeholder="Tu nombre completo"
+                  />
                 </div>
-                <div className="info-content">
-                  <label>Correo Electrónico</label>
-                  <p>{clienteInfo.email}</p>
-                </div>
-              </div>
 
-              <div className="info-item">
-                <div className="info-icon">
-                  <Phone className="icon" />
+                <div className="form-group">
+                  <label>Correo Electrónico *</label>
+                  <input
+                    type="email"
+                    value={editData.email || ''}
+                    onChange={(e) => setEditData({...editData, email: e.target.value})}
+                    placeholder="Tu correo"
+                  />
                 </div>
-                <div className="info-content">
+
+                <div className="form-group">
                   <label>Teléfono</label>
-                  <p>{clienteInfo.telefono || 'No especificado'}</p>
+                  <input
+                    type="tel"
+                    value={editData.telefono || ''}
+                    onChange={(e) => setEditData({...editData, telefono: e.target.value})}
+                    placeholder="Tu teléfono"
+                  />
                 </div>
-              </div>
 
-              <div className="info-item">
-                <div className="info-icon">
-                  <MapPin className="icon" />
-                </div>
-                <div className="info-content">
-                  <label>Ubicación</label>
-                  <p>
-                    {clienteInfo.municipio && clienteInfo.estado 
-                      ? `${clienteInfo.municipio}, ${clienteInfo.estado}`
-                      : 'No especificada'}
-                  </p>
+                <div className="edit-actions">
+                  <button 
+                    className="btn-save"
+                    onClick={handleEditSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button 
+                    className="btn-cancel"
+                    onClick={handleEditCancel}
+                    disabled={isSaving}
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </div>
+            ) : (
+              <div className="info-grid">
+                <div className="info-item">
+                  <div className="info-icon">
+                    <User className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Nombre Completo</label>
+                    <p>{clienteInfo.nombre_completo}</p>
+                  </div>
+                </div>
 
-              <div className="info-item">
-                <div className="info-icon">
-                  <Calendar className="icon" />
+                <div className="info-item">
+                  <div className="info-icon">
+                    <Mail className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Correo Electrónico</label>
+                    <p>{clienteInfo.email}</p>
+                  </div>
                 </div>
-                <div className="info-content">
-                  <label>Miembro desde</label>
-                  <p>{formatDate(clienteInfo.fecha_registro)}</p>
-                </div>
-              </div>
 
-              <div className="info-item">
-                <div className="info-icon">
-                  <Ticket className="icon" />
+                <div className="info-item">
+                  <div className="info-icon">
+                    <Phone className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Teléfono</label>
+                    <p>{clienteInfo.telefono || 'No especificado'}</p>
+                  </div>
                 </div>
-                <div className="info-content">
-                  <label>Número de Registro</label>
-                  <p>{clienteInfo.numero_registro}</p>
+
+                <div className="info-item">
+                  <div className="info-icon">
+                    <MapPin className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Ubicación</label>
+                    <p>
+                      {clienteInfo.municipio && clienteInfo.estado 
+                        ? `${clienteInfo.municipio}, ${clienteInfo.estado}`
+                        : 'No especificada'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="info-item">
+                  <div className="info-icon">
+                    <Calendar className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Miembro desde</label>
+                    <p>{formatDate(clienteInfo.fecha_registro)}</p>
+                  </div>
+                </div>
+
+                <div className="info-item">
+                  <div className="info-icon">
+                    <Ticket className="icon" />
+                  </div>
+                  <div className="info-content">
+                    <label>Número de Registro</label>
+                    <p>{clienteInfo.numero_registro}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Estadísticas */}

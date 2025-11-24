@@ -3,6 +3,7 @@ import {
   registrarCliente,
   loginCliente,
   getPerfilCliente,
+  updatePerfilCliente,
   getComprasCliente,
   getAllClientes
 } from '../controllers/clientesController';
@@ -18,6 +19,7 @@ router.get('/', getAllClientes);
 
 // Rutas de perfil y compras
 router.get('/:id/perfil', getPerfilCliente);
+router.put('/:id/perfil', updatePerfilCliente);
 router.get('/:id/compras', getComprasCliente);
 
 export default router;
